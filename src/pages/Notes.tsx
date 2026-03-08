@@ -86,7 +86,7 @@ export default function Notes() {
           ) : (
             <div className="space-y-3">
               {journal.map((entry) => {
-                const d = new Date(entry.date);
+                const d = new Date(entry.created_at);
                 return (
                   <Card key={entry.id} className="group">
                     <CardContent className="p-4">
