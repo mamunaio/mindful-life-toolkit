@@ -205,6 +205,154 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_settings: {
+        Row: {
+          business_address: string | null
+          business_email: string | null
+          business_name: string | null
+          business_phone: string | null
+          created_at: string
+          default_currency: string | null
+          default_tax_rate: number | null
+          id: string
+          logo_url: string | null
+          next_invoice_number: number | null
+          notes_template: string | null
+          payment_terms: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_address?: string | null
+          business_email?: string | null
+          business_name?: string | null
+          business_phone?: string | null
+          created_at?: string
+          default_currency?: string | null
+          default_tax_rate?: number | null
+          id?: string
+          logo_url?: string | null
+          next_invoice_number?: number | null
+          notes_template?: string | null
+          payment_terms?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_address?: string | null
+          business_email?: string | null
+          business_name?: string | null
+          business_phone?: string | null
+          created_at?: string
+          default_currency?: string | null
+          default_tax_rate?: number | null
+          id?: string
+          logo_url?: string | null
+          next_invoice_number?: number | null
+          notes_template?: string | null
+          payment_terms?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          client_company: string | null
+          client_email: string | null
+          client_id: string | null
+          client_name: string
+          created_at: string
+          discount_amount: number
+          discount_percent: number
+          due_date: string | null
+          id: string
+          invoice_number: string
+          issued_date: string
+          line_items: Json
+          notes: string | null
+          payment_id: string | null
+          project_id: string | null
+          status: string
+          subtotal: number
+          tax_amount: number
+          tax_rate: number
+          template: string
+          total: number
+          user_id: string
+        }
+        Insert: {
+          client_company?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name: string
+          created_at?: string
+          discount_amount?: number
+          discount_percent?: number
+          due_date?: string | null
+          id?: string
+          invoice_number: string
+          issued_date?: string
+          line_items?: Json
+          notes?: string | null
+          payment_id?: string | null
+          project_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number
+          template?: string
+          total?: number
+          user_id: string
+        }
+        Update: {
+          client_company?: string | null
+          client_email?: string | null
+          client_id?: string | null
+          client_name?: string
+          created_at?: string
+          discount_amount?: number
+          discount_percent?: number
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          issued_date?: string
+          line_items?: Json
+          notes?: string | null
+          payment_id?: string | null
+          project_id?: string | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number
+          template?: string
+          total?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journal_entries: {
         Row: {
           content: string

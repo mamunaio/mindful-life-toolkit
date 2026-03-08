@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, TrendingDown, DollarSign, CheckCircle, Clock, AlertCircle, FileDown } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, TrendingDown, DollarSign, CheckCircle, Clock, AlertCircle, FileDown, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useFreelance } from "@/hooks/useFreelance";
+import { useInvoices } from "@/hooks/useInvoices";
 import { generateInvoicePDF } from "@/lib/generateInvoice";
+import InvoiceBuilder from "@/components/InvoiceBuilder";
 import FreelanceCharts from "@/components/FreelanceCharts";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -34,6 +36,11 @@ export default function Freelance() {
     withdrawals, addWithdrawal, deleteWithdrawal,
     expenses, addExpense, deleteExpense,
   } = useFreelance();
+
+  const { settings, saveSettings, invoices, addInvoice, updateInvoice, deleteInvoice } = useInvoices();
+
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [invoicePrefill, setInvoicePrefill] = useState<any>(null);
 
   // Stats
   const totalEarned = payments.filter((p) => p.status === "paid").reduce((s, p) => s + p.amount, 0);
@@ -62,39 +69,60 @@ export default function Freelance() {
       <FreelanceCharts payments={payments} expenses={expenses} clients={clients} />
 
       <Tabs defaultValue="clients" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="clients" className="gap-1 text-xs sm:text-sm"><Users className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Clients</span></TabsTrigger>
           <TabsTrigger value="projects" className="gap-1 text-xs sm:text-sm"><FolderKanban className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Projects</span></TabsTrigger>
           <TabsTrigger value="payments" className="gap-1 text-xs sm:text-sm"><CreditCard className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Payments</span></TabsTrigger>
+          <TabsTrigger value="invoices" className="gap-1 text-xs sm:text-sm"><FileText className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Invoices</span></TabsTrigger>
           <TabsTrigger value="withdrawals" className="gap-1 text-xs sm:text-sm"><ArrowDownToLine className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Withdraw</span></TabsTrigger>
           <TabsTrigger value="expenses" className="gap-1 text-xs sm:text-sm"><Receipt className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Expenses</span></TabsTrigger>
         </TabsList>
 
-        {/* CLIENTS */}
         <TabsContent value="clients">
           <ClientsTab clients={clients} addClient={addClient} deleteClient={deleteClient} />
         </TabsContent>
 
-        {/* PROJECTS */}
         <TabsContent value="projects">
           <ProjectsTab projects={projects} clients={clients} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} />
         </TabsContent>
 
-        {/* PAYMENTS */}
         <TabsContent value="payments">
-          <PaymentsTab payments={payments} clients={clients} projects={projects} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} />
+          <PaymentsTab
+            payments={payments} clients={clients} projects={projects}
+            addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment}
+            onCreateInvoice={(prefill: any) => { setInvoicePrefill(prefill); setInvoiceOpen(true); }}
+          />
         </TabsContent>
 
-        {/* WITHDRAWALS */}
+        <TabsContent value="invoices">
+          <InvoicesTab
+            invoices={invoices}
+            clients={clients}
+            settings={settings}
+            deleteInvoice={deleteInvoice}
+            onNewInvoice={() => { setInvoicePrefill(null); setInvoiceOpen(true); }}
+          />
+        </TabsContent>
+
         <TabsContent value="withdrawals">
           <WithdrawalsTab withdrawals={withdrawals} addWithdrawal={addWithdrawal} deleteWithdrawal={deleteWithdrawal} />
         </TabsContent>
 
-        {/* EXPENSES */}
         <TabsContent value="expenses">
           <ExpensesTab expenses={expenses} addExpense={addExpense} deleteExpense={deleteExpense} />
         </TabsContent>
       </Tabs>
+
+      <InvoiceBuilder
+        open={invoiceOpen}
+        onOpenChange={setInvoiceOpen}
+        settings={settings}
+        onSaveSettings={saveSettings}
+        onSaveInvoice={addInvoice}
+        clients={clients}
+        projects={projects}
+        prefill={invoicePrefill}
+      />
     </div>
   );
 }
@@ -258,7 +286,7 @@ function ProjectsTab({ projects, clients, addProject, updateProject, deleteProje
 }
 
 /* ==================== PAYMENTS TAB ==================== */
-function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, deletePayment }: any) {
+function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, deletePayment, onCreateInvoice }: any) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [clientId, setClientId] = useState("");
@@ -341,21 +369,15 @@ function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, d
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-muted-foreground hover:text-primary"
-                      title="Download Invoice"
-                      onClick={() => {
-                        const invNum = `INV-${p.date.replace(/-/g, "")}-${p.id.slice(0, 4).toUpperCase()}`;
-                        generateInvoicePDF({
-                          invoiceNumber: invNum,
-                          date: p.date,
-                          clientName: client?.name || "Client",
-                          clientEmail: client?.email,
-                          clientCompany: client?.company,
-                          projectName: project?.name,
-                          amount: Number(p.amount),
-                          description: p.description,
-                          status: p.status,
-                        });
-                      }}
+                      title="Create Invoice"
+                      onClick={() => onCreateInvoice({
+                        paymentId: p.id,
+                        clientId: p.client_id,
+                        projectId: p.project_id,
+                        amount: Number(p.amount),
+                        description: p.description,
+                        status: p.status,
+                      })}
                     >
                       <FileDown className="h-3 w-3" />
                     </Button>
@@ -381,7 +403,84 @@ function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, d
   );
 }
 
-/* ==================== WITHDRAWALS TAB ==================== */
+/* ==================== INVOICES TAB ==================== */
+function InvoicesTab({ invoices, clients, settings, deleteInvoice, onNewInvoice }: any) {
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button className="gap-1" onClick={onNewInvoice}>
+          <Plus className="h-4 w-4" /> New Invoice
+        </Button>
+      </div>
+      {invoices.length === 0 ? (
+        <EmptyState icon={FileText} text="No invoices yet. Create one from a payment or start fresh!" />
+      ) : (
+        <div className="space-y-2">
+          {invoices.map((inv: any) => {
+            const client = clients.find((c: any) => c.id === inv.client_id);
+            return (
+              <Card key={inv.id} className="group">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Badge className={`gap-1 ${STATUS_STYLES[inv.status] || "bg-muted text-muted-foreground"}`}>
+                      {inv.status}
+                    </Badge>
+                    <div>
+                      <p className="text-sm font-semibold text-card-foreground">#{inv.invoice_number}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {inv.client_name}{inv.total ? ` · $${Number(inv.total).toFixed(2)}` : ""} · {inv.issued_date}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-primary"
+                      title="Download PDF"
+                      onClick={() => {
+                        generateInvoicePDF({
+                          invoiceNumber: inv.invoice_number,
+                          issuedDate: inv.issued_date,
+                          dueDate: inv.due_date || undefined,
+                          status: inv.status,
+                          clientName: inv.client_name,
+                          clientEmail: inv.client_email,
+                          clientCompany: inv.client_company,
+                          businessName: settings.business_name,
+                          businessEmail: settings.business_email,
+                          businessAddress: settings.business_address,
+                          businessPhone: settings.business_phone,
+                          lineItems: inv.line_items || [],
+                          subtotal: Number(inv.subtotal),
+                          taxRate: Number(inv.tax_rate),
+                          taxAmount: Number(inv.tax_amount),
+                          discountPercent: Number(inv.discount_percent),
+                          discountAmount: Number(inv.discount_amount),
+                          total: Number(inv.total),
+                          notes: inv.notes,
+                          paymentTerms: settings.payment_terms,
+                          template: inv.template as any,
+                          currency: settings.default_currency,
+                        });
+                      }}
+                    >
+                      <FileDown className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:text-destructive" onClick={() => deleteInvoice(inv.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WithdrawalsTab({ withdrawals, addWithdrawal, deleteWithdrawal }: any) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
