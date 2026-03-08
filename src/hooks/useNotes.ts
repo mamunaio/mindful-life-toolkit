@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface JournalEntry {
   id: string;
-  date: string;
   content: string;
+  created_at: string;
 }
 
 export interface ChecklistItem {
@@ -18,93 +20,132 @@ export interface Checklist {
   items: ChecklistItem[];
 }
 
-export interface NotesData {
-  journal: JournalEntry[];
-  brainDump: string;
-  checklists: Checklist[];
-}
-
-const EMPTY: NotesData = { journal: [], brainDump: "", checklists: [] };
-
-function load(): NotesData {
-  try {
-    return { ...EMPTY, ...JSON.parse(localStorage.getItem("lifehub-notes") || "{}") };
-  } catch {
-    return EMPTY;
-  }
-}
-
-function save(data: NotesData) {
-  localStorage.setItem("lifehub-notes", JSON.stringify(data));
-}
-
 export function useNotes() {
-  const [data, setData] = useState<NotesData>(load);
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const userId = user?.id;
 
-  useEffect(() => { save(data); }, [data]);
+  // Journal
+  const { data: journal = [] } = useQuery({
+    queryKey: ["journal", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("journal_entries").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as JournalEntry[];
+    },
+  });
 
-  const addJournalEntry = (content: string) => {
-    const entry: JournalEntry = { id: crypto.randomUUID(), date: new Date().toISOString(), content };
-    setData((d) => ({ ...d, journal: [entry, ...d.journal] }));
-  };
+  const addJournalEntry = useMutation({
+    mutationFn: async (content: string) => {
+      const { error } = await supabase.from("journal_entries").insert({ content, user_id: userId! });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["journal"] }),
+  });
 
-  const deleteJournalEntry = (id: string) => {
-    setData((d) => ({ ...d, journal: d.journal.filter((e) => e.id !== id) }));
-  };
+  const deleteJournalEntry = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("journal_entries").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["journal"] }),
+  });
 
-  const setBrainDump = (text: string) => {
-    setData((d) => ({ ...d, brainDump: text }));
-  };
+  // Brain dump
+  const { data: brainDumpData } = useQuery({
+    queryKey: ["braindump", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase.from("brain_dumps").select("*").maybeSingle();
+      return data;
+    },
+  });
 
-  const addChecklist = (name: string) => {
-    setData((d) => ({
-      ...d,
-      checklists: [...d.checklists, { id: crypto.randomUUID(), name, items: [] }],
-    }));
-  };
+  const brainDump = brainDumpData?.content || "";
 
-  const deleteChecklist = (id: string) => {
-    setData((d) => ({ ...d, checklists: d.checklists.filter((c) => c.id !== id) }));
-  };
+  const setBrainDump = useMutation({
+    mutationFn: async (content: string) => {
+      const { error } = await supabase.from("brain_dumps").upsert(
+        { user_id: userId!, content },
+        { onConflict: "user_id" }
+      );
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["braindump"] }),
+  });
 
-  const addChecklistItem = (checklistId: string, text: string) => {
-    setData((d) => ({
-      ...d,
-      checklists: d.checklists.map((c) =>
-        c.id === checklistId
-          ? { ...c, items: [...c.items, { id: crypto.randomUUID(), text, done: false }] }
-          : c
-      ),
-    }));
-  };
+  // Checklists
+  const { data: checklists = [] } = useQuery({
+    queryKey: ["checklists", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data: lists, error } = await supabase.from("checklists").select("*").order("created_at");
+      if (error) throw error;
+      const { data: items, error: err2 } = await supabase.from("checklist_items").select("*").order("created_at");
+      if (err2) throw err2;
+      return (lists || []).map((l) => ({
+        id: l.id,
+        name: l.name,
+        items: (items || []).filter((i) => i.checklist_id === l.id).map((i) => ({ id: i.id, text: i.text, done: i.done })),
+      })) as Checklist[];
+    },
+  });
 
-  const toggleChecklistItem = (checklistId: string, itemId: string) => {
-    setData((d) => ({
-      ...d,
-      checklists: d.checklists.map((c) =>
-        c.id === checklistId
-          ? { ...c, items: c.items.map((i) => (i.id === itemId ? { ...i, done: !i.done } : i)) }
-          : c
-      ),
-    }));
-  };
+  const addChecklist = useMutation({
+    mutationFn: async (name: string) => {
+      const { error } = await supabase.from("checklists").insert({ name, user_id: userId! });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["checklists"] }),
+  });
 
-  const deleteChecklistItem = (checklistId: string, itemId: string) => {
-    setData((d) => ({
-      ...d,
-      checklists: d.checklists.map((c) =>
-        c.id === checklistId
-          ? { ...c, items: c.items.filter((i) => i.id !== itemId) }
-          : c
-      ),
-    }));
-  };
+  const deleteChecklist = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("checklists").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["checklists"] }),
+  });
+
+  const addChecklistItem = useMutation({
+    mutationFn: async ({ checklistId, text }: { checklistId: string; text: string }) => {
+      const { error } = await supabase.from("checklist_items").insert({ checklist_id: checklistId, text, user_id: userId! });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["checklists"] }),
+  });
+
+  const toggleChecklistItem = useMutation({
+    mutationFn: async ({ itemId, done }: { itemId: string; done: boolean }) => {
+      const { error } = await supabase.from("checklist_items").update({ done: !done }).eq("id", itemId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["checklists"] }),
+  });
+
+  const deleteChecklistItem = useMutation({
+    mutationFn: async (itemId: string) => {
+      const { error } = await supabase.from("checklist_items").delete().eq("id", itemId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["checklists"] }),
+  });
 
   return {
-    ...data,
-    addJournalEntry, deleteJournalEntry,
-    setBrainDump,
-    addChecklist, deleteChecklist,
-    addChecklistItem, toggleChecklistItem, deleteChecklistItem,
+    journal,
+    brainDump,
+    checklists,
+    addJournalEntry: (c: string) => addJournalEntry.mutate(c),
+    deleteJournalEntry: (id: string) => deleteJournalEntry.mutate(id),
+    setBrainDump: (c: string) => setBrainDump.mutate(c),
+    addChecklist: (name: string) => addChecklist.mutate(name),
+    deleteChecklist: (id: string) => deleteChecklist.mutate(id),
+    addChecklistItem: (checklistId: string, text: string) => addChecklistItem.mutate({ checklistId, text }),
+    toggleChecklistItem: (checklistId: string, itemId: string) => {
+      const item = checklists.find((c) => c.id === checklistId)?.items.find((i) => i.id === itemId);
+      if (item) toggleChecklistItem.mutate({ itemId, done: item.done });
+    },
+    deleteChecklistItem: (_checklistId: string, itemId: string) => deleteChecklistItem.mutate(itemId),
   };
 }

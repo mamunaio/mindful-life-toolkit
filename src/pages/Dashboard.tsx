@@ -3,9 +3,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { useHealth, DEFAULT_HABITS } from "@/hooks/useHealth";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useNotes } from "@/hooks/useNotes";
+import { useTasks } from "@/hooks/useTasks";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -15,26 +17,19 @@ function getGreeting() {
   return "Good evening";
 }
 
-function loadTasks() {
-  try {
-    return JSON.parse(localStorage.getItem("lifehub-tasks") || "[]") as { id: string; title: string; column: string }[];
-  } catch { return []; }
-}
-
 export default function Dashboard() {
   const navigate = useNavigate();
-  const tasks = loadTasks();
+  const { displayName } = useAuth();
+  const { tasks } = useTasks();
   const { transactions } = useTransactions();
   const { today } = useHealth();
   const { journal, checklists } = useNotes();
 
-  // Tasks stats
-  const todoCount = tasks.filter((t) => t.column === "todo").length;
-  const inProgressCount = tasks.filter((t) => t.column === "inprogress").length;
-  const doneToday = tasks.filter((t) => t.column === "done").length;
-  const topTasks = tasks.filter((t) => t.column !== "done").slice(0, 3);
+  const todoCount = tasks.filter((t) => t.column_id === "todo").length;
+  const inProgressCount = tasks.filter((t) => t.column_id === "inprogress").length;
+  const doneCount = tasks.filter((t) => t.column_id === "done").length;
+  const topTasks = tasks.filter((t) => t.column_id !== "done").slice(0, 3);
 
-  // Finance stats (current month)
   const now = new Date();
   const month = now.getMonth();
   const year = now.getFullYear();
@@ -43,25 +38,24 @@ export default function Dashboard() {
   const monthExpense = monthTx.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
   const todayExpense = monthTx.filter((t) => t.type === "expense" && t.date === now.toISOString().split("T")[0]).reduce((s, t) => s + t.amount, 0);
 
-  // Health stats
   const habitsCompleted = Object.values(today.habits).filter(Boolean).length;
   const habitsTotal = DEFAULT_HABITS.length;
   const habitPercent = habitsTotal > 0 ? (habitsCompleted / habitsTotal) * 100 : 0;
 
-  // Notes stats
   const totalChecklistItems = checklists.reduce((s, c) => s + c.items.length, 0);
   const doneChecklistItems = checklists.reduce((s, c) => s + c.items.filter((i) => i.done).length, 0);
 
+  const greeting = displayName ? `${getGreeting()}, ${displayName.split(" ")[0]}` : getGreeting();
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
-      {/* Hero Greeting */}
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
           <Sparkles className="h-4 w-4 text-accent" />
           <span>{now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</span>
         </div>
         <h1 className="text-4xl md:text-5xl font-bold font-display tracking-tight text-foreground">
-          {getGreeting()} <span className="text-primary">👋</span>
+          {greeting} <span className="text-primary">👋</span>
         </h1>
         <p className="text-lg text-muted-foreground">
           {habitsCompleted === habitsTotal && habitsTotal > 0
@@ -72,7 +66,6 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Top Priorities */}
       {topTasks.length > 0 && (
         <Card>
           <CardContent className="p-5">
@@ -85,10 +78,10 @@ export default function Dashboard() {
             <div className="space-y-2">
               {topTasks.map((task) => (
                 <div key={task.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30">
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${task.column === "inprogress" ? "bg-warning" : "bg-info"}`} />
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${task.column_id === "inprogress" ? "bg-warning" : "bg-info"}`} />
                   <span className="text-sm text-card-foreground">{task.title}</span>
-                  <span className="text-[10px] text-muted-foreground ml-auto capitalize">
-                    {task.column === "inprogress" ? "In Progress" : "To Do"}
+                  <span className="text-[10px] text-muted-foreground ml-auto">
+                    {task.column_id === "inprogress" ? "In Progress" : "To Do"}
                   </span>
                 </div>
               ))}
@@ -97,22 +90,17 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* Tasks */}
         <Card className="cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5" onClick={() => navigate("/tasks")}>
           <CardContent className="p-4">
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center mb-3">
               <CheckSquare className="h-4 w-4 text-primary-foreground" />
             </div>
-            <p className="text-2xl font-bold font-display text-card-foreground">{doneToday}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              completed · {todoCount + inProgressCount} remaining
-            </p>
+            <p className="text-2xl font-bold font-display text-card-foreground">{doneCount}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">completed · {todoCount + inProgressCount} remaining</p>
           </CardContent>
         </Card>
 
-        {/* Finance */}
         <Card className="cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5" onClick={() => navigate("/finance")}>
           <CardContent className="p-4">
             <div className="w-8 h-8 rounded-lg gradient-warm flex items-center justify-center mb-3">
@@ -121,42 +109,32 @@ export default function Dashboard() {
             <p className={`text-2xl font-bold font-display ${(monthIncome - monthExpense) >= 0 ? "text-success" : "text-destructive"}`}>
               ${(monthIncome - monthExpense).toFixed(0)}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              balance · ${todayExpense.toFixed(0)} spent today
-            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">balance · ${todayExpense.toFixed(0)} today</p>
           </CardContent>
         </Card>
 
-        {/* Habits */}
         <Card className="cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5" onClick={() => navigate("/health")}>
           <CardContent className="p-4">
             <div className="w-8 h-8 rounded-lg gradient-cool flex items-center justify-center mb-3">
               <Heart className="h-4 w-4 text-primary-foreground" />
             </div>
             <p className="text-2xl font-bold font-display text-card-foreground">{habitsCompleted}/{habitsTotal}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              habits · {today.mood || "no mood yet"}
-            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">habits · {today.mood || "no mood"}</p>
           </CardContent>
         </Card>
 
-        {/* Notes */}
         <Card className="cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5" onClick={() => navigate("/notes")}>
           <CardContent className="p-4">
             <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center mb-3">
               <BookOpen className="h-4 w-4 text-secondary-foreground" />
             </div>
             <p className="text-2xl font-bold font-display text-card-foreground">{journal.length}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              entries · {doneChecklistItems}/{totalChecklistItems} items done
-            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">entries · {doneChecklistItems}/{totalChecklistItems} items</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Daily Snapshot */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Habits Progress */}
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-3">
@@ -175,7 +153,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Water + Spending Snapshot */}
         <Card>
           <CardContent className="p-5 space-y-4">
             <div>

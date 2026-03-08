@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BookOpen, Brain, ListChecks, Plus, Trash2, Check, X, Send } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,16 @@ export default function Notes() {
   const [newListName, setNewListName] = useState("");
   const [addingItemTo, setAddingItemTo] = useState<string | null>(null);
   const [newItemText, setNewItemText] = useState("");
+  const [localBrainDump, setLocalBrainDump] = useState(brainDump);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => { setLocalBrainDump(brainDump); }, [brainDump]);
+
+  const handleBrainDumpChange = (val: string) => {
+    setLocalBrainDump(val);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setBrainDump(val), 800);
+  };
 
   const handleAddEntry = () => {
     if (!journalDraft.trim()) return;
@@ -86,7 +96,7 @@ export default function Notes() {
           ) : (
             <div className="space-y-3">
               {journal.map((entry) => {
-                const d = new Date(entry.date);
+                const d = new Date(entry.created_at);
                 return (
                   <Card key={entry.id} className="group">
                     <CardContent className="p-4">
@@ -130,8 +140,8 @@ export default function Notes() {
             <CardContent>
               <Textarea
                 placeholder="Dump your thoughts, ideas, random notes here... This is your free-form space."
-                value={brainDump}
-                onChange={(e) => setBrainDump(e.target.value)}
+                value={localBrainDump}
+                onChange={(e) => handleBrainDumpChange(e.target.value)}
                 className="min-h-[350px] resize-none text-sm leading-relaxed"
               />
               <p className="text-xs text-muted-foreground mt-2">Auto-saved as you type</p>

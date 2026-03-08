@@ -1,15 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Plus, GripVertical, Pencil, Trash2, X, Check } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-
-interface Task {
-  id: string;
-  title: string;
-  column: "todo" | "inprogress" | "done";
-}
+import { useTasks } from "@/hooks/useTasks";
 
 const COLUMNS = [
   { id: "todo" as const, title: "To Do", color: "bg-info/10 text-info" },
@@ -17,55 +12,30 @@ const COLUMNS = [
   { id: "done" as const, title: "Completed", color: "bg-success/10 text-success" },
 ];
 
-function loadTasks(): Task[] {
-  try {
-    const stored = localStorage.getItem("lifehub-tasks");
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveTasks(tasks: Task[]) {
-  localStorage.setItem("lifehub-tasks", JSON.stringify(tasks));
-}
-
 export default function Tasks() {
-  const [tasks, setTasks] = useState<Task[]>(loadTasks);
+  const { tasks, addTask, updateTask, deleteTask } = useTasks();
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [draggedTask, setDraggedTask] = useState<string | null>(null);
 
-  useEffect(() => {
-    saveTasks(tasks);
-  }, [tasks]);
-
-  const addTask = (column: Task["column"]) => {
+  const handleAdd = (columnId: string) => {
     if (!newTitle.trim()) return;
-    setTasks([...tasks, { id: crypto.randomUUID(), title: newTitle.trim(), column }]);
+    addTask(newTitle.trim(), columnId);
     setNewTitle("");
     setAddingTo(null);
   };
 
-  const deleteTask = (id: string) => {
-    setTasks(tasks.filter((t) => t.id !== id));
-  };
-
-  const updateTask = (id: string) => {
+  const handleUpdate = (id: string) => {
     if (!editTitle.trim()) return;
-    setTasks(tasks.map((t) => (t.id === id ? { ...t, title: editTitle.trim() } : t)));
+    updateTask(id, { title: editTitle.trim() });
     setEditingId(null);
   };
 
-  const handleDragStart = (taskId: string) => {
-    setDraggedTask(taskId);
-  };
-
-  const handleDrop = (column: Task["column"]) => {
+  const handleDrop = (columnId: string) => {
     if (!draggedTask) return;
-    setTasks(tasks.map((t) => (t.id === draggedTask ? { ...t, column } : t)));
+    updateTask(draggedTask, { column_id: columnId });
     setDraggedTask(null);
   };
 
@@ -78,7 +48,7 @@ export default function Tasks() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {COLUMNS.map((col) => {
-          const columnTasks = tasks.filter((t) => t.column === col.id);
+          const columnTasks = tasks.filter((t) => t.column_id === col.id);
           return (
             <div
               key={col.id}
@@ -112,11 +82,11 @@ export default function Tasks() {
                         placeholder="Task title..."
                         value={newTitle}
                         onChange={(e) => setNewTitle(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && addTask(col.id)}
+                        onKeyDown={(e) => e.key === "Enter" && handleAdd(col.id)}
                         className="text-sm"
                       />
                       <div className="flex gap-1">
-                        <Button size="sm" className="h-7 text-xs" onClick={() => addTask(col.id)}>
+                        <Button size="sm" className="h-7 text-xs" onClick={() => handleAdd(col.id)}>
                           <Check className="h-3 w-3 mr-1" /> Add
                         </Button>
                         <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAddingTo(null)}>
@@ -131,7 +101,7 @@ export default function Tasks() {
                   <Card
                     key={task.id}
                     draggable
-                    onDragStart={() => handleDragStart(task.id)}
+                    onDragStart={() => setDraggedTask(task.id)}
                     className="cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 border-border/50"
                   >
                     <CardContent className="p-3 flex items-start gap-2">
@@ -142,11 +112,11 @@ export default function Tasks() {
                             autoFocus
                             value={editTitle}
                             onChange={(e) => setEditTitle(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && updateTask(task.id)}
+                            onKeyDown={(e) => e.key === "Enter" && handleUpdate(task.id)}
                             className="text-sm"
                           />
                           <div className="flex gap-1">
-                            <Button size="sm" className="h-6 text-xs" onClick={() => updateTask(task.id)}>
+                            <Button size="sm" className="h-6 text-xs" onClick={() => handleUpdate(task.id)}>
                               <Check className="h-3 w-3" />
                             </Button>
                             <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setEditingId(null)}>

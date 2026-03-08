@@ -1,38 +1,54 @@
-import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface Transaction {
   id: string;
   type: "income" | "expense";
   amount: number;
   category: string;
-  description?: string;
+  description?: string | null;
   date: string;
 }
 
-function load(): Transaction[] {
-  try {
-    return JSON.parse(localStorage.getItem("lifehub-transactions") || "[]");
-  } catch {
-    return [];
-  }
-}
-
-function save(t: Transaction[]) {
-  localStorage.setItem("lifehub-transactions", JSON.stringify(t));
-}
-
 export function useTransactions() {
-  const [transactions, setTransactions] = useState<Transaction[]>(load);
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const userId = user?.id;
 
-  useEffect(() => { save(transactions); }, [transactions]);
+  const { data: transactions = [] } = useQuery({
+    queryKey: ["transactions", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .order("date", { ascending: false })
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Transaction[];
+    },
+  });
 
-  const addTransaction = (t: Omit<Transaction, "id">) => {
-    setTransactions((prev) => [{ ...t, id: crypto.randomUUID() }, ...prev]);
+  const addMutation = useMutation({
+    mutationFn: async (t: Omit<Transaction, "id">) => {
+      const { error } = await supabase.from("transactions").insert({ ...t, user_id: userId! });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["transactions"] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("transactions").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["transactions"] }),
+  });
+
+  return {
+    transactions,
+    addTransaction: (t: Omit<Transaction, "id">) => addMutation.mutate(t),
+    deleteTransaction: (id: string) => deleteMutation.mutate(id),
   };
-
-  const deleteTransaction = (id: string) => {
-    setTransactions((prev) => prev.filter((t) => t.id !== id));
-  };
-
-  return { transactions, addTransaction, deleteTransaction };
 }
