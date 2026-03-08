@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, TrendingDown, DollarSign, CheckCircle, Clock, AlertCircle, FileDown, FileText, Timer, FileCheck } from "lucide-react";
+import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, TrendingDown, DollarSign, CheckCircle, Clock, AlertCircle, FileDown, FileText, Timer, FileCheck, BarChart3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,8 @@ import InvoiceBuilder from "@/components/InvoiceBuilder";
 import FreelanceCharts from "@/components/FreelanceCharts";
 import TimeTrackingTab from "@/components/TimeTrackingTab";
 import ProposalsTab from "@/components/ProposalsTab";
+import ReportsTab from "@/components/ReportsTab";
+import { useTimeTracking } from "@/hooks/useTimeTracking";
 
 const STATUS_STYLES: Record<string, string> = {
   active: "bg-success/10 text-success",
@@ -40,6 +42,7 @@ export default function Freelance() {
   } = useFreelance();
 
   const { settings, saveSettings, invoices, addInvoice, updateInvoice, deleteInvoice } = useInvoices();
+  const { entries: timeEntries } = useTimeTracking();
 
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [invoicePrefill, setInvoicePrefill] = useState<any>(null);
@@ -71,7 +74,7 @@ export default function Freelance() {
       <FreelanceCharts payments={payments} expenses={expenses} clients={clients} />
 
       <Tabs defaultValue="clients" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8">
+        <TabsList className="grid w-full grid-cols-5 sm:grid-cols-9">
           <TabsTrigger value="clients" className="gap-1 text-xs sm:text-sm"><Users className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Clients</span></TabsTrigger>
           <TabsTrigger value="proposals" className="gap-1 text-xs sm:text-sm"><FileCheck className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Proposals</span></TabsTrigger>
           <TabsTrigger value="projects" className="gap-1 text-xs sm:text-sm"><FolderKanban className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Projects</span></TabsTrigger>
@@ -80,6 +83,7 @@ export default function Freelance() {
           <TabsTrigger value="invoices" className="gap-1 text-xs sm:text-sm"><FileText className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Invoices</span></TabsTrigger>
           <TabsTrigger value="withdrawals" className="gap-1 text-xs sm:text-sm"><ArrowDownToLine className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Withdraw</span></TabsTrigger>
           <TabsTrigger value="expenses" className="gap-1 text-xs sm:text-sm"><Receipt className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Expenses</span></TabsTrigger>
+          <TabsTrigger value="reports" className="gap-1 text-xs sm:text-sm"><BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Reports</span></TabsTrigger>
         </TabsList>
 
         <TabsContent value="clients">
@@ -122,6 +126,10 @@ export default function Freelance() {
 
         <TabsContent value="expenses">
           <ExpensesTab expenses={expenses} addExpense={addExpense} deleteExpense={deleteExpense} />
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <ReportsTab payments={payments} expenses={expenses} clients={clients} projects={projects} withdrawals={withdrawals} timeEntries={timeEntries} />
         </TabsContent>
       </Tabs>
 
