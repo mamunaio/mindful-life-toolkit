@@ -170,6 +170,9 @@ export default function Finance() {
         </Card>
       </div>
 
+      {/* Due Collection */}
+      <DueCollection />
+
       <Card className="card-elevated">
         <CardHeader><CardTitle className="font-display text-sm">Recent Transactions</CardTitle></CardHeader>
         <CardContent>
