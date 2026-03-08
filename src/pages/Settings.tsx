@@ -23,6 +23,14 @@ export default function Settings() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [notifications, setNotifications] = useState({
+    task_reminders: true,
+    health_checkins: true,
+    payment_alerts: true,
+    freelance_deadlines: true,
+    weekly_summary: true,
+  });
+  const [savingNotifications, setSavingNotifications] = useState(false);
 
   useEffect(() => {
     setName(displayName ?? "");
