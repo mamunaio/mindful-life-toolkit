@@ -151,14 +151,9 @@ export default function Tasks() {
   return (
     <div className="page-container space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-        <div className="flex-1 page-header">
-          <h1 className="page-title">Tasks</h1>
-          <p className="page-subtitle">Organize your daily life with priorities, due dates & categories</p>
-        </div>
-        <div className="w-full lg:w-80 shrink-0">
-          <PomodoroTimer />
-        </div>
+      <div className="page-header">
+        <h1 className="page-title">Tasks</h1>
+        <p className="page-subtitle">Organize your daily life with priorities, due dates & categories</p>
       </div>
 
       {/* Search & Filters */}
@@ -477,6 +472,11 @@ export default function Tasks() {
             </div>
           );
         })}
+      </div>
+
+      {/* Pomodoro Timer */}
+      <div className="max-w-sm">
+        <PomodoroTimer />
       </div>
 
       {/* Edit Task Dialog */}
