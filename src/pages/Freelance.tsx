@@ -392,6 +392,83 @@ function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, d
                     <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:text-destructive" onClick={() => deletePayment(p.id)}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ==================== INVOICES TAB ==================== */
+function InvoicesTab({ invoices, clients, settings, deleteInvoice, onNewInvoice }: any) {
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button className="gap-1" onClick={onNewInvoice}>
+          <Plus className="h-4 w-4" /> New Invoice
+        </Button>
+      </div>
+      {invoices.length === 0 ? (
+        <EmptyState icon={FileText} text="No invoices yet. Create one from a payment or start fresh!" />
+      ) : (
+        <div className="space-y-2">
+          {invoices.map((inv: any) => {
+            const client = clients.find((c: any) => c.id === inv.client_id);
+            return (
+              <Card key={inv.id} className="group">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Badge className={`gap-1 ${STATUS_STYLES[inv.status] || "bg-muted text-muted-foreground"}`}>
+                      {inv.status}
+                    </Badge>
+                    <div>
+                      <p className="text-sm font-semibold text-card-foreground">#{inv.invoice_number}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {inv.client_name}{inv.total ? ` · $${Number(inv.total).toFixed(2)}` : ""} · {inv.issued_date}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-primary"
+                      title="Download PDF"
+                      onClick={() => {
+                        generateInvoicePDF({
+                          invoiceNumber: inv.invoice_number,
+                          issuedDate: inv.issued_date,
+                          dueDate: inv.due_date || undefined,
+                          status: inv.status,
+                          clientName: inv.client_name,
+                          clientEmail: inv.client_email,
+                          clientCompany: inv.client_company,
+                          businessName: settings.business_name,
+                          businessEmail: settings.business_email,
+                          businessAddress: settings.business_address,
+                          businessPhone: settings.business_phone,
+                          lineItems: inv.line_items || [],
+                          subtotal: Number(inv.subtotal),
+                          taxRate: Number(inv.tax_rate),
+                          taxAmount: Number(inv.tax_amount),
+                          discountPercent: Number(inv.discount_percent),
+                          discountAmount: Number(inv.discount_amount),
+                          total: Number(inv.total),
+                          notes: inv.notes,
+                          paymentTerms: settings.payment_terms,
+                          template: inv.template as any,
+                          currency: settings.default_currency,
+                        });
+                      }}
+                    >
+                      <FileDown className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:text-destructive" onClick={() => deleteInvoice(inv.id)}>
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                 </CardContent>
@@ -404,7 +481,6 @@ function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, d
   );
 }
 
-/* ==================== WITHDRAWALS TAB ==================== */
 function WithdrawalsTab({ withdrawals, addWithdrawal, deleteWithdrawal }: any) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
