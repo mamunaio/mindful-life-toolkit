@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, TrendingDown, DollarSign, CheckCircle, Clock, AlertCircle, FileDown, FileText, Timer, FileCheck, BarChart3 } from "lucide-react";
+import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, TrendingDown, DollarSign, CheckCircle, Clock, AlertCircle, FileDown, FileText, Timer, FileCheck, BarChart3, Star, MessageSquareQuote } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,13 +11,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { useFreelance } from "@/hooks/useFreelance";
 import { useInvoices } from "@/hooks/useInvoices";
+import { useTransactions } from "@/hooks/useTransactions";
+import { useReviews } from "@/hooks/useReviews";
 import { generateInvoicePDF } from "@/lib/generateInvoice";
 import InvoiceBuilder from "@/components/InvoiceBuilder";
 import FreelanceCharts from "@/components/FreelanceCharts";
 import TimeTrackingTab from "@/components/TimeTrackingTab";
 import ProposalsTab from "@/components/ProposalsTab";
 import ReportsTab from "@/components/ReportsTab";
+import ReviewsTab, { StarRating } from "@/components/ReviewsTab";
 import { useTimeTracking } from "@/hooks/useTimeTracking";
+import { toast } from "sonner";
 
 const STATUS_STYLES: Record<string, string> = {
   active: "bg-success/10 text-success border-success/20",
@@ -43,6 +47,8 @@ export default function Freelance() {
 
   const { settings, saveSettings, invoices, addInvoice, updateInvoice, deleteInvoice } = useInvoices();
   const { entries: timeEntries } = useTimeTracking();
+  const { addTransaction } = useTransactions();
+  const { reviews, addReview, deleteReview } = useReviews();
 
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [invoicePrefill, setInvoicePrefill] = useState<any>(null);
@@ -52,6 +58,50 @@ export default function Freelance() {
   const totalWithdrawn = withdrawals.reduce((s, w) => s + w.amount, 0);
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
   const netProfit = totalEarned - totalExpenses;
+
+  // Handle payment status change with auto-sync to Finance
+  const handlePaymentStatusChange = (paymentId: string, newStatus: string, payment: any) => {
+    const oldStatus = payment.status;
+    updatePayment(paymentId, { status: newStatus });
+    
+    // Auto-sync: when payment becomes "paid", add as income to Finance
+    if (newStatus === "paid" && oldStatus !== "paid") {
+      const client = clients.find((c: any) => c.id === payment.client_id);
+      const project = projects.find((p: any) => p.id === payment.project_id);
+      const desc = [client?.name, project?.name, payment.description].filter(Boolean).join(" · ");
+      addTransaction({
+        type: "income",
+        amount: payment.amount,
+        category: "Freelance",
+        description: `Freelance: ${desc || "Payment received"}`,
+        date: new Date().toISOString().split("T")[0],
+      });
+      toast.success("Payment marked as paid & synced to Finance!");
+    }
+  };
+
+  // Handle project completion with prompt
+  const handleProjectStatusChange = (projectId: string, newStatus: string) => {
+    updateProject(projectId, { status: newStatus });
+
+    if (newStatus === "completed") {
+      const pendingPayments = payments.filter((p) => p.project_id === projectId && p.status === "pending");
+      if (pendingPayments.length > 0) {
+        const totalPending = pendingPayments.reduce((s, p) => s + p.amount, 0);
+        toast(`Project completed! ${pendingPayments.length} pending payment(s) worth $${totalPending.toFixed(0)}`, {
+          action: {
+            label: "Mark All Paid",
+            onClick: () => {
+              pendingPayments.forEach((p) => {
+                handlePaymentStatusChange(p.id, "paid", p);
+              });
+            },
+          },
+          duration: 8000,
+        });
+      }
+    }
+  };
 
   return (
     <div className="page-container space-y-8">
@@ -72,7 +122,7 @@ export default function Freelance() {
       <FreelanceCharts payments={payments} expenses={expenses} clients={clients} />
 
       <Tabs defaultValue="clients" className="space-y-5">
-        <TabsList className="grid w-full grid-cols-5 sm:grid-cols-9 h-10">
+        <TabsList className="grid w-full grid-cols-5 sm:grid-cols-10 h-10">
           <TabsTrigger value="clients" className="gap-1 text-xs sm:text-sm"><Users className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Clients</span></TabsTrigger>
           <TabsTrigger value="proposals" className="gap-1 text-xs sm:text-sm"><FileCheck className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Proposals</span></TabsTrigger>
           <TabsTrigger value="projects" className="gap-1 text-xs sm:text-sm"><FolderKanban className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Projects</span></TabsTrigger>
@@ -81,15 +131,18 @@ export default function Freelance() {
           <TabsTrigger value="invoices" className="gap-1 text-xs sm:text-sm"><FileText className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Invoices</span></TabsTrigger>
           <TabsTrigger value="withdrawals" className="gap-1 text-xs sm:text-sm"><ArrowDownToLine className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Withdraw</span></TabsTrigger>
           <TabsTrigger value="expenses" className="gap-1 text-xs sm:text-sm"><Receipt className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Expenses</span></TabsTrigger>
+          <TabsTrigger value="reviews" className="gap-1 text-xs sm:text-sm"><Star className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Reviews</span></TabsTrigger>
           <TabsTrigger value="reports" className="gap-1 text-xs sm:text-sm"><BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Reports</span></TabsTrigger>
         </TabsList>
 
         <TabsContent value="clients"><ClientsTab clients={clients} addClient={addClient} deleteClient={deleteClient} /></TabsContent>
         <TabsContent value="proposals"><ProposalsTab clients={clients} projects={projects} addProject={addProject} /></TabsContent>
-        <TabsContent value="projects"><ProjectsTab projects={projects} clients={clients} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} /></TabsContent>
+        <TabsContent value="projects">
+          <ProjectsTab projects={projects} clients={clients} reviews={reviews} addProject={addProject} updateProject={handleProjectStatusChange} deleteProject={deleteProject} />
+        </TabsContent>
         <TabsContent value="time"><TimeTrackingTab clients={clients} projects={projects} /></TabsContent>
         <TabsContent value="payments">
-          <PaymentsTab payments={payments} clients={clients} projects={projects} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment}
+          <PaymentsTab payments={payments} clients={clients} projects={projects} addPayment={addPayment} updatePayment={handlePaymentStatusChange} deletePayment={deletePayment}
             onCreateInvoice={(prefill: any) => { setInvoicePrefill(prefill); setInvoiceOpen(true); }} />
         </TabsContent>
         <TabsContent value="invoices">
@@ -97,6 +150,9 @@ export default function Freelance() {
         </TabsContent>
         <TabsContent value="withdrawals"><WithdrawalsTab withdrawals={withdrawals} addWithdrawal={addWithdrawal} deleteWithdrawal={deleteWithdrawal} /></TabsContent>
         <TabsContent value="expenses"><ExpensesTab expenses={expenses} addExpense={addExpense} deleteExpense={deleteExpense} /></TabsContent>
+        <TabsContent value="reviews">
+          <ReviewsTab reviews={reviews} clients={clients} projects={projects} addReview={addReview} deleteReview={deleteReview} />
+        </TabsContent>
         <TabsContent value="reports"><ReportsTab payments={payments} expenses={expenses} clients={clients} projects={projects} withdrawals={withdrawals} timeEntries={timeEntries} /></TabsContent>
       </Tabs>
 
@@ -175,8 +231,8 @@ function ClientsTab({ clients, addClient, deleteClient }: any) {
   );
 }
 
-/* ==================== PROJECTS TAB ==================== */
-function ProjectsTab({ projects, clients, addProject, updateProject, deleteProject }: any) {
+/* ==================== PROJECTS TAB (with inline reviews) ==================== */
+function ProjectsTab({ projects, clients, reviews, addProject, updateProject, deleteProject }: any) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [clientId, setClientId] = useState("");
@@ -220,34 +276,51 @@ function ProjectsTab({ projects, clients, addProject, updateProject, deleteProje
         <div className="space-y-2">
           {projects.map((p: any) => {
             const client = clients.find((c: any) => c.id === p.client_id);
+            const projectReviews = reviews.filter((r: any) => r.project_id === p.id);
             return (
               <Card key={p.id} className="group card-elevated">
-                <CardContent className="p-4 flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-card-foreground text-sm">{p.name}</p>
-                      <Badge className={`text-[10px] border ${STATUS_STYLES[p.status] || ""}`}>{p.status}</Badge>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-card-foreground text-sm">{p.name}</p>
+                        <Badge className={`text-[10px] border ${STATUS_STYLES[p.status] || ""}`}>{p.status}</Badge>
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
+                        {client && <span>{client.name}</span>}
+                        {p.budget && <span>${Number(p.budget).toFixed(0)}</span>}
+                        {p.deadline && <span>Due {p.deadline}</span>}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
-                      {client && <span>{client.name}</span>}
-                      {p.budget && <span>${Number(p.budget).toFixed(0)}</span>}
-                      {p.deadline && <span>Due {p.deadline}</span>}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Select value={p.status} onValueChange={(s) => updateProject(p.id, s)}>
+                        <SelectTrigger className="h-7 w-[100px] text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="paused">Paused</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => deleteProject(p.id)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Select value={p.status} onValueChange={(s) => updateProject(p.id, { status: s })}>
-                      <SelectTrigger className="h-7 w-[100px] text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="paused">Paused</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => deleteProject(p.id)}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
+                  {/* Inline Reviews */}
+                  {projectReviews.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-border/30 space-y-2">
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                        <MessageSquareQuote className="h-3 w-3" /> Client Feedback
+                      </p>
+                      {projectReviews.map((r: any) => (
+                        <div key={r.id} className="flex items-start gap-2 bg-muted/20 rounded-md p-2">
+                          <StarRating rating={r.rating} size="sm" />
+                          {r.comment && <p className="text-xs text-muted-foreground italic flex-1">"{r.comment}"</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -335,7 +408,7 @@ function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, d
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <Select value={p.status} onValueChange={(s) => updatePayment(p.id, { status: s })}>
+                    <Select value={p.status} onValueChange={(s) => updatePayment(p.id, s, p)}>
                       <SelectTrigger className="h-7 w-[90px] text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="pending">Pending</SelectItem>
