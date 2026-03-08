@@ -1,4 +1,4 @@
-import { LayoutDashboard, CheckSquare, Wallet, Heart, BookOpen, Sun, Moon, LogOut } from "lucide-react";
+import { LayoutDashboard, CheckSquare, Wallet, Heart, BookOpen, Briefcase, Sun, Moon, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useTheme } from "@/hooks/useTheme";
