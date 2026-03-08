@@ -140,8 +140,8 @@ export default function Notes() {
             <CardContent>
               <Textarea
                 placeholder="Dump your thoughts, ideas, random notes here... This is your free-form space."
-                value={brainDump}
-                onChange={(e) => setBrainDump(e.target.value)}
+                value={localBrainDump}
+                onChange={(e) => handleBrainDumpChange(e.target.value)}
                 className="min-h-[350px] resize-none text-sm leading-relaxed"
               />
               <p className="text-xs text-muted-foreground mt-2">Auto-saved as you type</p>
