@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckSquare, Wallet, Heart, Sparkles, ArrowRight, Droplets, Settings2, RotateCcw, TrendingUp, Calendar, Target, Zap, Users2 } from "lucide-react";
+import { CheckSquare, Wallet, Heart, Sparkles, ArrowRight, Droplets, Settings2, RotateCcw, TrendingUp, Calendar, Target, Zap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
