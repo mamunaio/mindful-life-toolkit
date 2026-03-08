@@ -689,25 +689,78 @@ export type Database = {
           },
         ]
       }
-      tasks: {
+      subtasks: {
         Row: {
-          column_id: string
           created_at: string
+          done: boolean
           id: string
+          task_id: string
           title: string
           user_id: string
         }
         Insert: {
-          column_id?: string
           created_at?: string
+          done?: boolean
           id?: string
+          task_id: string
           title: string
           user_id: string
         }
         Update: {
+          created_at?: string
+          done?: boolean
+          id?: string
+          task_id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subtasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          category: string
+          column_id: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          is_recurring: boolean
+          priority: string
+          recurrence_pattern: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
           column_id?: string
           created_at?: string
+          description?: string | null
+          due_date?: string | null
           id?: string
+          is_recurring?: boolean
+          priority?: string
+          recurrence_pattern?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          column_id?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_recurring?: boolean
+          priority?: string
+          recurrence_pattern?: string | null
           title?: string
           user_id?: string
         }
