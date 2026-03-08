@@ -1,25 +1,25 @@
 import { useState, useMemo } from "react";
-import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, TrendingDown, DollarSign, CheckCircle, Clock, AlertCircle, FileDown, FileText, Timer, FileCheck, BarChart3, Star, MessageSquareQuote } from "lucide-react";
+import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, DollarSign, CheckCircle, Clock, AlertCircle, FileDown, FileText, Timer, FileCheck, BarChart3, Pencil, MessageSquare, X, StickyNote } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
 import { useFreelance } from "@/hooks/useFreelance";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useTransactions } from "@/hooks/useTransactions";
-import { useReviews } from "@/hooks/useReviews";
 import { generateInvoicePDF } from "@/lib/generateInvoice";
 import InvoiceBuilder from "@/components/InvoiceBuilder";
 import FreelanceCharts from "@/components/FreelanceCharts";
 import TimeTrackingTab from "@/components/TimeTrackingTab";
 import ProposalsTab from "@/components/ProposalsTab";
 import ReportsTab from "@/components/ReportsTab";
-import ReviewsTab, { StarRating } from "@/components/ReviewsTab";
 import { useTimeTracking } from "@/hooks/useTimeTracking";
 import { toast } from "sonner";
 
@@ -40,6 +40,7 @@ export default function Freelance() {
   const {
     clients, addClient, deleteClient,
     projects, addProject, updateProject, deleteProject,
+    projectNotes, addProjectNote, deleteProjectNote,
     payments, addPayment, updatePayment, deletePayment,
     withdrawals, addWithdrawal, deleteWithdrawal,
     expenses, addExpense, deleteExpense,
@@ -48,7 +49,6 @@ export default function Freelance() {
   const { settings, saveSettings, invoices, addInvoice, updateInvoice, deleteInvoice } = useInvoices();
   const { entries: timeEntries } = useTimeTracking();
   const { addTransaction } = useTransactions();
-  const { reviews, addReview, deleteReview } = useReviews();
 
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [invoicePrefill, setInvoicePrefill] = useState<any>(null);
@@ -59,12 +59,9 @@ export default function Freelance() {
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
   const netProfit = totalEarned - totalExpenses;
 
-  // Handle payment status change with auto-sync to Finance
   const handlePaymentStatusChange = (paymentId: string, newStatus: string, payment: any) => {
     const oldStatus = payment.status;
     updatePayment(paymentId, { status: newStatus });
-    
-    // Auto-sync: when payment becomes "paid", add as income to Finance
     if (newStatus === "paid" && oldStatus !== "paid") {
       const client = clients.find((c: any) => c.id === payment.client_id);
       const project = projects.find((p: any) => p.id === payment.project_id);
@@ -80,10 +77,8 @@ export default function Freelance() {
     }
   };
 
-  // Handle project completion with prompt
   const handleProjectStatusChange = (projectId: string, newStatus: string) => {
-    updateProject(projectId, { status: newStatus });
-
+    updateProject(projectId, { status: newStatus, ...(newStatus === "completed" ? { completion_percent: 100 } : {}) });
     if (newStatus === "completed") {
       const pendingPayments = payments.filter((p) => p.project_id === projectId && p.status === "pending");
       if (pendingPayments.length > 0) {
@@ -110,7 +105,6 @@ export default function Freelance() {
         <p className="page-subtitle">Manage your clients, projects, and finances</p>
       </div>
 
-      {/* Overview */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <StatCard icon={TrendingUp} label="Earned" value={`$${totalEarned.toFixed(0)}`} gradient="gradient-primary" />
         <StatCard icon={Clock} label="Pending" value={`$${totalPending.toFixed(0)}`} gradient="gradient-warm" />
@@ -122,7 +116,7 @@ export default function Freelance() {
       <FreelanceCharts payments={payments} expenses={expenses} clients={clients} />
 
       <Tabs defaultValue="clients" className="space-y-5">
-        <TabsList className="grid w-full grid-cols-5 sm:grid-cols-10 h-10">
+        <TabsList className="grid w-full grid-cols-5 sm:grid-cols-9 h-10">
           <TabsTrigger value="clients" className="gap-1 text-xs sm:text-sm"><Users className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Clients</span></TabsTrigger>
           <TabsTrigger value="proposals" className="gap-1 text-xs sm:text-sm"><FileCheck className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Proposals</span></TabsTrigger>
           <TabsTrigger value="projects" className="gap-1 text-xs sm:text-sm"><FolderKanban className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Projects</span></TabsTrigger>
@@ -131,14 +125,20 @@ export default function Freelance() {
           <TabsTrigger value="invoices" className="gap-1 text-xs sm:text-sm"><FileText className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Invoices</span></TabsTrigger>
           <TabsTrigger value="withdrawals" className="gap-1 text-xs sm:text-sm"><ArrowDownToLine className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Withdraw</span></TabsTrigger>
           <TabsTrigger value="expenses" className="gap-1 text-xs sm:text-sm"><Receipt className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Expenses</span></TabsTrigger>
-          <TabsTrigger value="reviews" className="gap-1 text-xs sm:text-sm"><Star className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Reviews</span></TabsTrigger>
           <TabsTrigger value="reports" className="gap-1 text-xs sm:text-sm"><BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Reports</span></TabsTrigger>
         </TabsList>
 
         <TabsContent value="clients"><ClientsTab clients={clients} addClient={addClient} deleteClient={deleteClient} /></TabsContent>
         <TabsContent value="proposals"><ProposalsTab clients={clients} projects={projects} addProject={addProject} /></TabsContent>
         <TabsContent value="projects">
-          <ProjectsTab projects={projects} clients={clients} reviews={reviews} addProject={addProject} updateProject={handleProjectStatusChange} deleteProject={deleteProject} />
+          <ProjectsTab
+            projects={projects} clients={clients}
+            projectNotes={projectNotes}
+            addProject={addProject} updateProject={updateProject}
+            deleteProject={deleteProject}
+            onStatusChange={handleProjectStatusChange}
+            addProjectNote={addProjectNote} deleteProjectNote={deleteProjectNote}
+          />
         </TabsContent>
         <TabsContent value="time"><TimeTrackingTab clients={clients} projects={projects} /></TabsContent>
         <TabsContent value="payments">
@@ -150,9 +150,6 @@ export default function Freelance() {
         </TabsContent>
         <TabsContent value="withdrawals"><WithdrawalsTab withdrawals={withdrawals} addWithdrawal={addWithdrawal} deleteWithdrawal={deleteWithdrawal} /></TabsContent>
         <TabsContent value="expenses"><ExpensesTab expenses={expenses} addExpense={addExpense} deleteExpense={deleteExpense} /></TabsContent>
-        <TabsContent value="reviews">
-          <ReviewsTab reviews={reviews} clients={clients} projects={projects} addReview={addReview} deleteReview={deleteReview} />
-        </TabsContent>
         <TabsContent value="reports"><ReportsTab payments={payments} expenses={expenses} clients={clients} projects={projects} withdrawals={withdrawals} timeEntries={timeEntries} /></TabsContent>
       </Tabs>
 
@@ -231,25 +228,83 @@ function ClientsTab({ clients, addClient, deleteClient }: any) {
   );
 }
 
-/* ==================== PROJECTS TAB (with inline reviews) ==================== */
-function ProjectsTab({ projects, clients, reviews, addProject, updateProject, deleteProject }: any) {
-  const [open, setOpen] = useState(false);
+/* ==================== PROJECTS TAB (fully editable) ==================== */
+function ProjectsTab({ projects, clients, projectNotes, addProject, updateProject, deleteProject, onStatusChange, addProjectNote, deleteProjectNote }: any) {
+  const [addOpen, setAddOpen] = useState(false);
+  const [editProject, setEditProject] = useState<any>(null);
+  const [detailProject, setDetailProject] = useState<any>(null);
+
+  // Add form
   const [name, setName] = useState("");
   const [clientId, setClientId] = useState("");
   const [description, setDescription] = useState("");
   const [budget, setBudget] = useState("");
   const [deadline, setDeadline] = useState("");
 
+  // Edit form
+  const [editName, setEditName] = useState("");
+  const [editClientId, setEditClientId] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editBudget, setEditBudget] = useState("");
+  const [editDeadline, setEditDeadline] = useState("");
+  const [editPercent, setEditPercent] = useState(0);
+  const [editCompletionNotes, setEditCompletionNotes] = useState("");
+
+  // Note input
+  const [noteText, setNoteText] = useState("");
+
   const handleAdd = () => {
     if (!name.trim()) return;
-    addProject({ name: name.trim(), client_id: clientId || null, description: description || null, status: "active", budget: budget ? parseFloat(budget) : null, deadline: deadline || null });
-    setName(""); setClientId(""); setDescription(""); setBudget(""); setDeadline(""); setOpen(false);
+    addProject({ name: name.trim(), client_id: clientId || null, description: description || null, status: "active", budget: budget ? parseFloat(budget) : null, deadline: deadline || null, completion_percent: 0, completion_notes: null });
+    setName(""); setClientId(""); setDescription(""); setBudget(""); setDeadline(""); setAddOpen(false);
+  };
+
+  const openEdit = (p: any) => {
+    setEditProject(p);
+    setEditName(p.name);
+    setEditClientId(p.client_id || "");
+    setEditDescription(p.description || "");
+    setEditBudget(p.budget ? String(p.budget) : "");
+    setEditDeadline(p.deadline || "");
+    setEditPercent(p.completion_percent || 0);
+    setEditCompletionNotes(p.completion_notes || "");
+  };
+
+  const handleSaveEdit = () => {
+    if (!editProject || !editName.trim()) return;
+    const newStatus = editPercent === 100 ? "completed" : editProject.status === "completed" && editPercent < 100 ? "active" : editProject.status;
+    const wasCompleted = editProject.status !== "completed" && newStatus === "completed";
+
+    updateProject(editProject.id, {
+      name: editName.trim(),
+      client_id: editClientId || null,
+      description: editDescription || null,
+      budget: editBudget ? parseFloat(editBudget) : null,
+      deadline: editDeadline || null,
+      completion_percent: editPercent,
+      completion_notes: editCompletionNotes || null,
+      status: newStatus,
+    });
+
+    if (wasCompleted) {
+      onStatusChange(editProject.id, "completed");
+    }
+
+    toast.success("Project updated!");
+    setEditProject(null);
+  };
+
+  const handleAddNote = (projectId: string) => {
+    if (!noteText.trim()) return;
+    addProjectNote({ project_id: projectId, content: noteText.trim() });
+    setNoteText("");
+    toast.success("Note added!");
   };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild><Button className="gap-1 h-9"><Plus className="h-4 w-4" /> Add Project</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle className="font-display">New Project</DialogTitle></DialogHeader>
@@ -270,13 +325,121 @@ function ProjectsTab({ projects, clients, reviews, addProject, updateProject, de
           </DialogContent>
         </Dialog>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editProject} onOpenChange={(o) => !o && setEditProject(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle className="font-display">Edit Project</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-2 max-h-[70vh] overflow-y-auto">
+            <div className="space-y-1"><Label className="text-xs font-medium">Name *</Label><Input value={editName} onChange={(e) => setEditName(e.target.value)} /></div>
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Client</Label>
+              <Select value={editClientId} onValueChange={setEditClientId}>
+                <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No client</SelectItem>
+                  {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1"><Label className="text-xs font-medium">Budget</Label><Input type="number" value={editBudget} onChange={(e) => setEditBudget(e.target.value)} placeholder="0.00" /></div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Deadline</Label><Input type="date" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} /></div>
+            </div>
+            <div className="space-y-1"><Label className="text-xs font-medium">Description</Label><Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Project details..." rows={2} /></div>
+
+            {/* Completion Progress */}
+            <div className="space-y-2 p-3 rounded-lg bg-muted/20 border border-border/30">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium">Completion Progress</Label>
+                <span className={`text-xs font-bold ${editPercent === 100 ? "text-success" : "text-primary"}`}>{editPercent}%</span>
+              </div>
+              <Slider value={[editPercent]} onValueChange={(v) => setEditPercent(v[0])} max={100} step={5} className="w-full" />
+              <Progress value={editPercent} className="h-2" />
+              {editPercent === 100 && (
+                <p className="text-[10px] text-success font-medium">✓ Status will be set to "Completed" on save</p>
+              )}
+            </div>
+
+            {/* Completion Notes */}
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">Completion / Summary Notes</Label>
+              <Textarea value={editCompletionNotes} onChange={(e) => setEditCompletionNotes(e.target.value)} placeholder="Final notes, deliverables, client feedback..." rows={3} />
+            </div>
+
+            <Button className="w-full" onClick={handleSaveEdit} disabled={!editName.trim()}>Save Changes</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail / Notes Dialog */}
+      <Dialog open={!!detailProject} onOpenChange={(o) => { if (!o) { setDetailProject(null); setNoteText(""); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2">
+              <StickyNote className="h-4 w-4" /> {detailProject?.name} — Updates
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2 max-h-[60vh] overflow-y-auto">
+            {/* Progress overview */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/20 border border-border/30">
+              <Progress value={detailProject?.completion_percent || 0} className="h-2 flex-1" />
+              <span className="text-xs font-bold text-primary">{detailProject?.completion_percent || 0}%</span>
+              <Badge className={`text-[10px] border ${STATUS_STYLES[detailProject?.status] || ""}`}>{detailProject?.status}</Badge>
+            </div>
+
+            {detailProject?.completion_notes && (
+              <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Summary</p>
+                <p className="text-sm text-card-foreground">{detailProject.completion_notes}</p>
+              </div>
+            )}
+
+            {/* Add note */}
+            <div className="flex gap-2">
+              <Input value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Add a progress update..." className="flex-1"
+                onKeyDown={(e) => { if (e.key === "Enter" && detailProject) handleAddNote(detailProject.id); }}
+              />
+              <Button size="sm" onClick={() => detailProject && handleAddNote(detailProject.id)} disabled={!noteText.trim()}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Notes list */}
+            {(() => {
+              const notes = projectNotes.filter((n: any) => n.project_id === detailProject?.id);
+              return notes.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">No updates yet. Add your first progress note!</p>
+              ) : (
+                <div className="space-y-2">
+                  {notes.map((n: any) => (
+                    <div key={n.id} className="group/note flex items-start gap-2 p-3 rounded-lg bg-muted/20 border border-border/30">
+                      <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-card-foreground">{n.content}</p>
+                        <p className="text-[10px] text-muted-foreground/60 mt-1">
+                          {new Date(n.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover/note:opacity-100 text-muted-foreground hover:text-destructive shrink-0" onClick={() => deleteProjectNote(n.id)}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {projects.length === 0 ? (
         <EmptyState icon={FolderKanban} text="No projects yet. Start by adding one!" />
       ) : (
         <div className="space-y-2">
           {projects.map((p: any) => {
             const client = clients.find((c: any) => c.id === p.client_id);
-            const projectReviews = reviews.filter((r: any) => r.project_id === p.id);
+            const noteCount = projectNotes.filter((n: any) => n.project_id === p.id).length;
             return (
               <Card key={p.id} className="group card-elevated">
                 <CardContent className="p-4">
@@ -285,15 +448,29 @@ function ProjectsTab({ projects, clients, reviews, addProject, updateProject, de
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-semibold text-card-foreground text-sm">{p.name}</p>
                         <Badge className={`text-[10px] border ${STATUS_STYLES[p.status] || ""}`}>{p.status}</Badge>
+                        {p.completion_percent > 0 && p.completion_percent < 100 && (
+                          <span className="text-[10px] font-medium text-primary">{p.completion_percent}%</span>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
                         {client && <span>{client.name}</span>}
                         {p.budget && <span>${Number(p.budget).toFixed(0)}</span>}
                         {p.deadline && <span>Due {p.deadline}</span>}
                       </div>
+                      {/* Progress bar */}
+                      {(p.completion_percent > 0) && (
+                        <Progress value={p.completion_percent} className="h-1.5 mt-2" />
+                      )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <Select value={p.status} onValueChange={(s) => updateProject(p.id, s)}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => setDetailProject(p)} title="Updates & Notes">
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        {noteCount > 0 && <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-primary text-[8px] text-primary-foreground flex items-center justify-center font-bold">{noteCount}</span>}
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openEdit(p)} title="Edit">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Select value={p.status} onValueChange={(s) => onStatusChange(p.id, s)}>
                         <SelectTrigger className="h-7 w-[100px] text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="active">Active</SelectItem>
@@ -307,20 +484,6 @@ function ProjectsTab({ projects, clients, reviews, addProject, updateProject, de
                       </Button>
                     </div>
                   </div>
-                  {/* Inline Reviews */}
-                  {projectReviews.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-border/30 space-y-2">
-                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                        <MessageSquareQuote className="h-3 w-3" /> Client Feedback
-                      </p>
-                      {projectReviews.map((r: any) => (
-                        <div key={r.id} className="flex items-start gap-2 bg-muted/20 rounded-md p-2">
-                          <StarRating rating={r.rating} size="sm" />
-                          {r.comment && <p className="text-xs text-muted-foreground italic flex-1">"{r.comment}"</p>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             );
