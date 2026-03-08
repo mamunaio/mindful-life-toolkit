@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useTasks } from "@/hooks/useTasks";
+import PomodoroTimer from "@/components/PomodoroTimer";
 
 const COLUMNS = [
   { id: "todo" as const, title: "To Do", color: "bg-info/10 text-info" },
@@ -41,9 +42,14 @@ export default function Tasks() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-3xl font-bold font-display tracking-tight">Tasks</h1>
-        <p className="text-muted-foreground mt-1">Organize your work with a Kanban board</p>
+      <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold font-display tracking-tight">Tasks</h1>
+          <p className="text-muted-foreground mt-1">Organize your work with a Kanban board</p>
+        </div>
+        <div className="w-full lg:w-80 shrink-0">
+          <PomodoroTimer />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
