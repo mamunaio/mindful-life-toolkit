@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useHealth, DEFAULT_HABITS } from "@/hooks/useHealth";
 import { useTransactions } from "@/hooks/useTransactions";
-import { useNotes } from "@/hooks/useNotes";
+
 import { useTasks } from "@/hooks/useTasks";
 import { useDashboardLayout } from "@/hooks/useDashboardLayout";
 
