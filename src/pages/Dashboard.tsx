@@ -23,7 +23,6 @@ function getGreeting() {
 }
 
 const WIDGET_META: Record<string, { label: string; icon: React.ReactNode }> = {
-  dues: { label: "Due Collection", icon: <Users2 className="h-3.5 w-3.5" /> },
   priorities: { label: "Top Priorities", icon: <Target className="h-3.5 w-3.5" /> },
   stats: { label: "Quick Stats", icon: <Zap className="h-3.5 w-3.5" /> },
   habits: { label: "Today's Habits", icon: <Heart className="h-3.5 w-3.5" /> },
