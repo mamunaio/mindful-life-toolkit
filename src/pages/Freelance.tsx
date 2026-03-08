@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, TrendingDown, DollarSign, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, TrendingDown, DollarSign, CheckCircle, Clock, AlertCircle, FileDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useFreelance } from "@/hooks/useFreelance";
+import { generateInvoicePDF } from "@/lib/generateInvoice";
 
 const STATUS_STYLES: Record<string, string> = {
   active: "bg-success/10 text-success",
@@ -332,6 +333,28 @@ function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, d
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-primary"
+                      title="Download Invoice"
+                      onClick={() => {
+                        const invNum = `INV-${p.date.replace(/-/g, "")}-${p.id.slice(0, 4).toUpperCase()}`;
+                        generateInvoicePDF({
+                          invoiceNumber: invNum,
+                          date: p.date,
+                          clientName: client?.name || "Client",
+                          clientEmail: client?.email,
+                          clientCompany: client?.company,
+                          projectName: project?.name,
+                          amount: Number(p.amount),
+                          description: p.description,
+                          status: p.status,
+                        });
+                      }}
+                    >
+                      <FileDown className="h-3 w-3" />
+                    </Button>
                     <Select value={p.status} onValueChange={(s) => updatePayment(p.id, { status: s })}>
                       <SelectTrigger className="h-7 w-[90px] text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
