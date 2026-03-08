@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Star, Plus, Trash2, MessageSquareQuote } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Star, Plus, Trash2, MessageSquareQuote, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
