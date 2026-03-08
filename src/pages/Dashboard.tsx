@@ -55,8 +55,6 @@ export default function Dashboard() {
   const habitsTotal = DEFAULT_HABITS.length;
   const habitPercent = habitsTotal > 0 ? (habitsCompleted / habitsTotal) * 100 : 0;
 
-  const totalChecklistItems = checklists.reduce((s, c) => s + c.items.length, 0);
-  const doneChecklistItems = checklists.reduce((s, c) => s + c.items.filter((i) => i.done).length, 0);
 
   const greeting = displayName ? `${getGreeting()}, ${displayName.split(" ")[0]}` : getGreeting();
   const balance = monthIncome - monthExpense;
