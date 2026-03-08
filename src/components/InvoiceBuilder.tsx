@@ -117,7 +117,7 @@ export default function InvoiceBuilder({
   const taxAmount = afterDiscount * (tax / 100);
   const total = afterDiscount + taxAmount;
 
-  const invNumber = `INV-${String(settings.next_invoice_number || 1).padStart(4, "0")}`;
+  const invNumber = `INVNJ-${String(settings.next_invoice_number || 1).padStart(4, "0")}`;
 
   const buildInvoiceData = (): InvoiceData => ({
     invoiceNumber: invNumber,
