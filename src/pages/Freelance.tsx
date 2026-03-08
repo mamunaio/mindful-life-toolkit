@@ -233,7 +233,9 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
   const [addOpen, setAddOpen] = useState(false);
   const [editProject, setEditProject] = useState<any>(null);
   const [detailProject, setDetailProject] = useState<any>(null);
-
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterClient, setFilterClient] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   // Add form
   const [name, setName] = useState("");
   const [clientId, setClientId] = useState("");
