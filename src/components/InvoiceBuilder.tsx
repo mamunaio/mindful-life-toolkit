@@ -42,7 +42,7 @@ export default function InvoiceBuilder({
   const [tab, setTab] = useState<"invoice" | "settings">("invoice");
 
   // Settings state
-  const [bizName, setBizName] = useState(settings.business_name || "");
+  const [bizName, setBizName] = useState(settings.business_name || "Injaazh PLC");
   const [bizEmail, setBizEmail] = useState(settings.business_email || "");
   const [bizAddress, setBizAddress] = useState(settings.business_address || "");
   const [bizPhone, setBizPhone] = useState(settings.business_phone || "");
