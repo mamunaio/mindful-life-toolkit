@@ -41,11 +41,14 @@ export default function Settings() {
     if (!user) return;
     supabase
       .from("profiles")
-      .select("avatar_url")
+      .select("avatar_url, notification_preferences")
       .eq("user_id", user.id)
       .single()
       .then(({ data }) => {
         if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+        if (data?.notification_preferences) {
+          setNotifications(data.notification_preferences as typeof notifications);
+        }
       });
   }, [user]);
 
