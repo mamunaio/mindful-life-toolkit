@@ -69,92 +69,80 @@ export default function Dashboard() {
 
   const visibleLayouts: Layout = layouts.filter((l) => visibility[l.i] !== false);
 
+  const StatWidget = ({ icon: Icon, gradient, value, label, sub, onClick }: any) => (
+    <Card className="h-full cursor-pointer hover:shadow-md transition-all duration-200 group card-elevated" onClick={onClick}>
+      <CardContent className="p-5 h-full flex flex-col justify-between">
+        <div className={`w-9 h-9 rounded-lg ${gradient} flex items-center justify-center mb-3 transition-transform group-hover:scale-105`}>
+          <Icon className="h-4 w-4 text-primary-foreground" />
+        </div>
+        <div>
+          <p className="text-2xl font-bold font-display text-card-foreground leading-none">{value}</p>
+          <p className="text-xs text-muted-foreground mt-1.5">{label}{sub ? ` · ${sub}` : ""}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   const widgets: Record<string, React.ReactNode> = {
     priorities: (
-      <Card className="h-full overflow-auto">
+      <Card className="h-full overflow-auto card-elevated">
         <CardContent className="p-5 h-full">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="font-display font-semibold text-sm text-card-foreground">Top Priorities</h2>
-            <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1" onClick={() => navigate("/tasks")}>
-              All tasks <ArrowRight className="h-3 w-3" />
+            <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1 h-7" onClick={() => navigate("/tasks")}>
+              View all <ArrowRight className="h-3 w-3" />
             </Button>
           </div>
           {topTasks.length > 0 ? (
             <div className="space-y-2">
               {topTasks.map((task) => (
-                <div key={task.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30">
+                <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border/30">
                   <div className={`w-2 h-2 rounded-full shrink-0 ${task.column_id === "inprogress" ? "bg-warning" : "bg-info"}`} />
-                  <span className="text-sm text-card-foreground">{task.title}</span>
-                  <span className="text-[10px] text-muted-foreground ml-auto">
+                  <span className="text-sm text-card-foreground flex-1">{task.title}</span>
+                  <span className="text-[10px] text-muted-foreground px-2 py-0.5 rounded-full bg-muted/50">
                     {task.column_id === "inprogress" ? "In Progress" : "To Do"}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No pending tasks 🎉</p>
+            <div className="flex flex-col items-center justify-center h-24 text-muted-foreground">
+              <p className="text-sm">No pending tasks 🎉</p>
+            </div>
           )}
         </CardContent>
       </Card>
     ),
-    tasks: (
-      <Card className="h-full cursor-pointer hover:shadow-md transition-all" onClick={() => navigate("/tasks")}>
-        <CardContent className="p-4 h-full flex flex-col justify-center">
-          <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center mb-3">
-            <CheckSquare className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <p className="text-2xl font-bold font-display text-card-foreground">{doneCount}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">completed · {todoCount + inProgressCount} remaining</p>
-        </CardContent>
-      </Card>
-    ),
+    tasks: <StatWidget icon={CheckSquare} gradient="gradient-primary" value={doneCount} label="completed" sub={`${todoCount + inProgressCount} remaining`} onClick={() => navigate("/tasks")} />,
     finance: (
-      <Card className="h-full cursor-pointer hover:shadow-md transition-all" onClick={() => navigate("/finance")}>
-        <CardContent className="p-4 h-full flex flex-col justify-center">
-          <div className="w-8 h-8 rounded-lg gradient-warm flex items-center justify-center mb-3">
+      <Card className="h-full cursor-pointer hover:shadow-md transition-all duration-200 group card-elevated" onClick={() => navigate("/finance")}>
+        <CardContent className="p-5 h-full flex flex-col justify-between">
+          <div className="w-9 h-9 rounded-lg gradient-warm flex items-center justify-center mb-3 transition-transform group-hover:scale-105">
             <Wallet className="h-4 w-4 text-primary-foreground" />
           </div>
-          <p className={`text-2xl font-bold font-display ${(monthIncome - monthExpense) >= 0 ? "text-success" : "text-destructive"}`}>
-            ${(monthIncome - monthExpense).toFixed(0)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">balance · ${todayExpense.toFixed(0)} today</p>
-        </CardContent>
-      </Card>
-    ),
-    health: (
-      <Card className="h-full cursor-pointer hover:shadow-md transition-all" onClick={() => navigate("/health")}>
-        <CardContent className="p-4 h-full flex flex-col justify-center">
-          <div className="w-8 h-8 rounded-lg gradient-cool flex items-center justify-center mb-3">
-            <Heart className="h-4 w-4 text-primary-foreground" />
+          <div>
+            <p className={`text-2xl font-bold font-display leading-none ${(monthIncome - monthExpense) >= 0 ? "text-success" : "text-destructive"}`}>
+              ${(monthIncome - monthExpense).toFixed(0)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1.5">balance · ${todayExpense.toFixed(0)} today</p>
           </div>
-          <p className="text-2xl font-bold font-display text-card-foreground">{habitsCompleted}/{habitsTotal}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">habits · {today.mood || "no mood"}</p>
         </CardContent>
       </Card>
     ),
-    notes: (
-      <Card className="h-full cursor-pointer hover:shadow-md transition-all" onClick={() => navigate("/notes")}>
-        <CardContent className="p-4 h-full flex flex-col justify-center">
-          <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center mb-3">
-            <BookOpen className="h-4 w-4 text-secondary-foreground" />
-          </div>
-          <p className="text-2xl font-bold font-display text-card-foreground">{journal.length}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">entries · {doneChecklistItems}/{totalChecklistItems} items</p>
-        </CardContent>
-      </Card>
-    ),
+    health: <StatWidget icon={Heart} gradient="gradient-cool" value={`${habitsCompleted}/${habitsTotal}`} label="habits" sub={today.mood || "no mood"} onClick={() => navigate("/health")} />,
+    notes: <StatWidget icon={BookOpen} gradient="bg-secondary" value={journal.length} label="entries" sub={`${doneChecklistItems}/${totalChecklistItems} items`} onClick={() => navigate("/notes")} />,
     habits: (
-      <Card className="h-full overflow-auto">
+      <Card className="h-full overflow-auto card-elevated">
         <CardContent className="p-5 h-full">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display font-semibold text-sm text-card-foreground">Today's Habits</h2>
-            <span className="text-xs text-muted-foreground">{Math.round(habitPercent)}%</span>
+            <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">{Math.round(habitPercent)}%</span>
           </div>
-          <Progress value={habitPercent} className="h-2 mb-3" />
+          <Progress value={habitPercent} className="h-1.5 mb-4" />
           <div className="space-y-1.5">
             {DEFAULT_HABITS.map((h) => (
-              <div key={h} className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-sm ${today.habits[h] ? "bg-primary" : "bg-muted-foreground/20"}`} />
+              <div key={h} className="flex items-center gap-2.5 py-0.5">
+                <div className={`w-3 h-3 rounded ${today.habits[h] ? "bg-primary" : "bg-muted-foreground/15"}`} />
                 <span className={`text-xs ${today.habits[h] ? "text-primary line-through" : "text-muted-foreground"}`}>{h}</span>
               </div>
             ))}
@@ -163,20 +151,20 @@ export default function Dashboard() {
       </Card>
     ),
     water: (
-      <Card className="h-full overflow-auto">
-        <CardContent className="p-5 space-y-4 h-full">
+      <Card className="h-full overflow-auto card-elevated">
+        <CardContent className="p-5 space-y-5 h-full">
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2.5">
               <Droplets className="h-4 w-4 text-info" />
               <h2 className="font-display font-semibold text-sm text-card-foreground">Water Intake</h2>
             </div>
             <div className="flex items-center gap-3">
-              <Progress value={Math.min((today.water / 2000) * 100, 100)} className="h-2 flex-1 [&>div]:bg-info" />
+              <Progress value={Math.min((today.water / 2000) * 100, 100)} className="h-1.5 flex-1 [&>div]:bg-info" />
               <span className="text-xs font-medium text-muted-foreground">{today.water}ml / 2L</span>
             </div>
           </div>
-          <div className="border-t border-border/50 pt-4">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="border-t border-border/40 pt-4">
+            <div className="flex items-center gap-2 mb-2.5">
               <Wallet className="h-4 w-4 text-accent" />
               <h2 className="font-display font-semibold text-sm text-card-foreground">Today's Spending</h2>
             </div>
@@ -192,17 +180,17 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
+    <div className="page-container space-y-8 animate-in fade-in duration-500">
       <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
-            <Sparkles className="h-4 w-4 text-accent" />
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium">
+            <Sparkles className="h-3.5 w-3.5 text-accent" />
             <span>{now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold font-display tracking-tight text-foreground">
-            {greeting} <span className="text-primary">👋</span>
+          <h1 className="text-3xl md:text-4xl font-bold font-display tracking-tight text-foreground leading-tight">
+            {greeting} <span className="inline-block">👋</span>
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {habitsCompleted === habitsTotal && habitsTotal > 0
               ? "All habits done today — amazing! 🎉"
               : topTasks.length > 0
@@ -214,7 +202,7 @@ export default function Dashboard() {
           <Button
             variant={isEditing ? "default" : "outline"}
             size="sm"
-            className="gap-1.5 text-xs"
+            className="gap-1.5 text-xs h-8"
             onClick={() => setIsEditing(!isEditing)}
           >
             <Settings2 className="h-3.5 w-3.5" />
@@ -223,21 +211,18 @@ export default function Dashboard() {
           {isEditing && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="text-xs">Widgets</Button>
+                <Button variant="outline" size="sm" className="text-xs h-8">Widgets</Button>
               </PopoverTrigger>
               <PopoverContent className="w-56" align="end">
                 <div className="space-y-3">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Show / Hide</p>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Show / Hide</p>
                   {Object.entries(WIDGET_META).map(([id, meta]) => (
                     <div key={id} className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-sm">
                         {meta.icon}
                         <span>{meta.label}</span>
                       </div>
-                      <Switch
-                        checked={visibility[id] !== false}
-                        onCheckedChange={() => toggleWidget(id)}
-                      />
+                      <Switch checked={visibility[id] !== false} onCheckedChange={() => toggleWidget(id)} />
                     </div>
                   ))}
                   <Button variant="ghost" size="sm" className="w-full gap-1.5 text-xs mt-2" onClick={resetLayout}>
@@ -270,12 +255,12 @@ export default function Dashboard() {
                 updateLayouts(merged);
               }
             }}
-            margin={[12, 12] as const}
+            margin={[14, 14] as const}
           >
             {visibleLayouts.map((l: LayoutItem) => (
               <div key={l.i} className="relative group">
                 {isEditing && (
-                  <div className="widget-drag-handle absolute top-2 right-2 z-10 cursor-grab active:cursor-grabbing p-1 rounded bg-muted/80 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="widget-drag-handle absolute top-2 right-2 z-10 cursor-grab active:cursor-grabbing p-1 rounded-md bg-muted/80 opacity-0 group-hover:opacity-100 transition-opacity">
                     <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
                   </div>
                 )}

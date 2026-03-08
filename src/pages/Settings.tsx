@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Camera, Loader2, Bell, CheckSquare, Heart, Wallet, Briefcase, BarChart3 } from "lucide-react";
+import { Camera, Loader2, Bell, CheckSquare, Heart, Wallet, Briefcase, BarChart3, Shield, User, Mail } from "lucide-react";
 
 export default function Settings() {
   const { user, displayName } = useAuth();
@@ -18,7 +18,6 @@ export default function Settings() {
   const [name, setName] = useState(displayName ?? "");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [email, setEmail] = useState(user?.email ?? "");
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
@@ -55,29 +54,14 @@ export default function Settings() {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Image must be under 2MB");
-      return;
-    }
-
+    if (file.size > 2 * 1024 * 1024) { toast.error("Image must be under 2MB"); return; }
     setUploadingAvatar(true);
     const ext = file.name.split(".").pop();
     const path = `${user.id}/avatar.${ext}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(path, file, { upsert: true });
-
-    if (uploadError) {
-      toast.error(uploadError.message);
-      setUploadingAvatar(false);
-      return;
-    }
-
+    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (uploadError) { toast.error(uploadError.message); setUploadingAvatar(false); return; }
     const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
     const url = `${publicUrl}?t=${Date.now()}`;
-
     await supabase.from("profiles").update({ avatar_url: url }).eq("user_id", user.id);
     setAvatarUrl(url);
     setUploadingAvatar(false);
@@ -89,14 +73,9 @@ export default function Settings() {
     const trimmed = name.trim();
     if (!trimmed) { toast.error("Display name cannot be empty"); return; }
     if (trimmed.length > 100) { toast.error("Display name must be under 100 characters"); return; }
-
     setSaving(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ display_name: trimmed })
-      .eq("user_id", user.id);
+    const { error } = await supabase.from("profiles").update({ display_name: trimmed }).eq("user_id", user.id);
     setSaving(false);
-
     if (error) toast.error(error.message);
     else toast.success("Profile updated!");
   };
@@ -104,41 +83,22 @@ export default function Settings() {
   const handleUpdateEmail = async () => {
     if (!user) return;
     const trimmed = email.trim();
-    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      toast.error("Please enter a valid email");
-      return;
-    }
-
+    if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) { toast.error("Please enter a valid email"); return; }
     setSaving(true);
     const { error } = await supabase.auth.updateUser({ email: trimmed });
     setSaving(false);
-
     if (error) toast.error(error.message);
     else toast.success("Check your new email for a confirmation link!");
   };
 
   const handleChangePassword = async () => {
-    if (newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-
+    if (newPassword.length < 6) { toast.error("Password must be at least 6 characters"); return; }
+    if (newPassword !== confirmPassword) { toast.error("Passwords do not match"); return; }
     setSaving(true);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setSaving(false);
-
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Password updated!");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    }
+    if (error) toast.error(error.message);
+    else { toast.success("Password updated!"); setNewPassword(""); setConfirmPassword(""); }
   };
 
   const handleToggleNotification = async (key: keyof typeof notifications) => {
@@ -146,15 +106,9 @@ export default function Settings() {
     const updated = { ...notifications, [key]: !notifications[key] };
     setNotifications(updated);
     setSavingNotifications(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ notification_preferences: updated } as any)
-      .eq("user_id", user.id);
+    const { error } = await supabase.from("profiles").update({ notification_preferences: updated } as any).eq("user_id", user.id);
     setSavingNotifications(false);
-    if (error) {
-      setNotifications(notifications); // revert
-      toast.error(error.message);
-    }
+    if (error) { setNotifications(notifications); toast.error(error.message); }
   };
 
   const notificationItems = [
@@ -168,156 +122,129 @@ export default function Settings() {
   const initials = (name || user?.email || "U").slice(0, 2).toUpperCase();
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-bold font-display text-foreground">Settings</h1>
-        <p className="text-muted-foreground text-sm">Manage your profile and account preferences</p>
+    <div className="page-container space-y-8 animate-in fade-in duration-500">
+      <div className="page-header">
+        <h1 className="page-title">Settings</h1>
+        <p className="page-subtitle">Manage your profile and account preferences</p>
       </div>
 
-      {/* Avatar & Display Name */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Profile</CardTitle>
-          <CardDescription>Your public identity</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-              <Avatar className="h-20 w-20 border-2 border-border">
-                {avatarUrl ? (
-                  <AvatarImage src={avatarUrl} alt="Avatar" />
-                ) : (
-                  <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
-                    {initials}
-                  </AvatarFallback>
-                )}
-              </Avatar>
-              <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                {uploadingAvatar ? (
-                  <Loader2 className="h-5 w-5 text-white animate-spin" />
-                ) : (
-                  <Camera className="h-5 w-5 text-white" />
-                )}
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarUpload}
-              />
+      <div className="max-w-2xl space-y-6">
+        {/* Profile */}
+        <Card className="card-elevated">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">Profile</CardTitle>
             </div>
-            <div className="flex-1 space-y-2">
-              <Label>Display Name</Label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your name"
-                maxLength={100}
-              />
-            </div>
-          </div>
-          <div className="flex justify-end">
-            <Button onClick={handleUpdateProfile} disabled={saving} size="sm">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              Save Profile
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Email */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Email</CardTitle>
-          <CardDescription>Update your email address. You'll need to confirm the new one.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Email Address</Label>
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              maxLength={255}
-            />
-          </div>
-          <div className="flex justify-end">
-            <Button onClick={handleUpdateEmail} disabled={saving} size="sm">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              Update Email
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Password */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Password</CardTitle>
-          <CardDescription>Change your account password</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>New Password</Label>
-            <Input
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="••••••••"
-              minLength={6}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Confirm New Password</Label>
-            <Input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="••••••••"
-              minLength={6}
-            />
-          </div>
-          <div className="flex justify-end">
-            <Button onClick={handleChangePassword} disabled={saving} size="sm">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              Change Password
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-      {/* Notifications */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            Notifications
-          </CardTitle>
-          <CardDescription>Choose which notifications you'd like to receive</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-1">
-          {notificationItems.map((item, i) => (
-            <div key={item.key}>
-              <div className="flex items-center justify-between py-3">
-                <div className="flex items-center gap-3">
-                  <item.icon className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{item.label}</p>
-                    <p className="text-xs text-muted-foreground">{item.desc}</p>
-                  </div>
+            <CardDescription>Your public identity</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-5">
+              <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                <Avatar className="h-20 w-20 border-2 border-border/60">
+                  {avatarUrl ? <AvatarImage src={avatarUrl} alt="Avatar" /> : (
+                    <AvatarFallback className="bg-primary/8 text-primary text-lg font-semibold">{initials}</AvatarFallback>
+                  )}
+                </Avatar>
+                <div className="absolute inset-0 rounded-full bg-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  {uploadingAvatar ? <Loader2 className="h-5 w-5 text-background animate-spin" /> : <Camera className="h-5 w-5 text-background" />}
                 </div>
-                <Switch
-                  checked={notifications[item.key]}
-                  onCheckedChange={() => handleToggleNotification(item.key)}
-                  disabled={savingNotifications}
-                />
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
               </div>
-              {i < notificationItems.length - 1 && <Separator />}
+              <div className="flex-1 space-y-2">
+                <Label className="text-xs font-medium">Display Name</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" maxLength={100} />
+              </div>
             </div>
-          ))}
-        </CardContent>
-      </Card>
+            <div className="flex justify-end">
+              <Button onClick={handleUpdateProfile} disabled={saving} size="sm">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                Save Profile
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Email */}
+        <Card className="card-elevated">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">Email</CardTitle>
+            </div>
+            <CardDescription>Update your email address</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Email Address</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" maxLength={255} />
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={handleUpdateEmail} disabled={saving} size="sm">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                Update Email
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Password */}
+        <Card className="card-elevated">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">Password</CardTitle>
+            </div>
+            <CardDescription>Change your account password</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">New Password</Label>
+              <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" minLength={6} />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Confirm New Password</Label>
+              <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" minLength={6} />
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={handleChangePassword} disabled={saving} size="sm">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                Change Password
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Notifications */}
+        <Card className="card-elevated">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-2">
+              <Bell className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base">Notifications</CardTitle>
+            </div>
+            <CardDescription>Choose which notifications you'd like to receive</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-0.5">
+            {notificationItems.map((item, i) => (
+              <div key={item.key}>
+                <div className="flex items-center justify-between py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center">
+                      <item.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    </div>
+                  </div>
+                  <Switch checked={notifications[item.key]} onCheckedChange={() => handleToggleNotification(item.key)} disabled={savingNotifications} />
+                </div>
+                {i < notificationItems.length - 1 && <Separator className="opacity-50" />}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
