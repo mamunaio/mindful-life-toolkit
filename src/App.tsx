@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Finance from "./pages/Finance";
 import Health from "./pages/Health";
+import Freelance from "./pages/Freelance";
 import Notes from "./pages/Notes";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -39,6 +40,7 @@ const AppRoutes = () => (
       <Route path="/tasks" element={<Tasks />} />
       <Route path="/finance" element={<Finance />} />
       <Route path="/health" element={<Health />} />
+      <Route path="/freelance" element={<Freelance />} />
       <Route path="/notes" element={<Notes />} />
     </Route>
     <Route path="*" element={<NotFound />} />
