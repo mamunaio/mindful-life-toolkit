@@ -127,6 +127,10 @@ export default function Freelance() {
         <TabsContent value="expenses">
           <ExpensesTab expenses={expenses} addExpense={addExpense} deleteExpense={deleteExpense} />
         </TabsContent>
+
+        <TabsContent value="reports">
+          <ReportsTab payments={payments} expenses={expenses} clients={clients} projects={projects} withdrawals={withdrawals} timeEntries={timeEntries} />
+        </TabsContent>
       </Tabs>
 
       <InvoiceBuilder
