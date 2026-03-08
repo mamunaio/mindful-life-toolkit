@@ -287,6 +287,37 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+      {/* Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            Notifications
+          </CardTitle>
+          <CardDescription>Choose which notifications you'd like to receive</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          {notificationItems.map((item, i) => (
+            <div key={item.key}>
+              <div className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-3">
+                  <item.icon className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={notifications[item.key]}
+                  onCheckedChange={() => handleToggleNotification(item.key)}
+                  disabled={savingNotifications}
+                />
+              </div>
+              {i < notificationItems.length - 1 && <Separator />}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }
