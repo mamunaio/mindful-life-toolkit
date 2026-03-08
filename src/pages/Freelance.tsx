@@ -86,6 +86,10 @@ export default function Freelance() {
           <ClientsTab clients={clients} addClient={addClient} deleteClient={deleteClient} />
         </TabsContent>
 
+        <TabsContent value="proposals">
+          <ProposalsTab clients={clients} projects={projects} addProject={addProject} />
+        </TabsContent>
+
         <TabsContent value="projects">
           <ProjectsTab projects={projects} clients={clients} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} />
         </TabsContent>
