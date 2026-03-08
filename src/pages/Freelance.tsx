@@ -305,9 +305,34 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search projects..." className="h-8 w-48 text-xs" />
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="paused">Paused</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterClient} onValueChange={setFilterClient}>
+          <SelectTrigger className="h-8 w-[140px] text-xs"><SelectValue placeholder="Client" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Clients</SelectItem>
+            {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {(filterStatus !== "all" || filterClient !== "all" || searchQuery) && (
+          <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={() => { setFilterStatus("all"); setFilterClient("all"); setSearchQuery(""); }}>
+            Clear filters
+          </Button>
+        )}
+        <div className="flex-1" />
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild><Button className="gap-1 h-9"><Plus className="h-4 w-4" /> Add Project</Button></DialogTrigger>
+          <DialogTrigger asChild><Button className="gap-1 h-8 text-xs"><Plus className="h-3.5 w-3.5" /> Add Project</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle className="font-display">New Project</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
