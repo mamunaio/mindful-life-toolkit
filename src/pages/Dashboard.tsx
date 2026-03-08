@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckSquare, Wallet, Heart, Sparkles, ArrowRight, Droplets, Settings2, RotateCcw, TrendingUp, Calendar, Target, Zap, Users2 } from "lucide-react";
+import { CheckSquare, Wallet, Heart, Sparkles, ArrowRight, Droplets, Settings2, RotateCcw, TrendingUp, Calendar, Target, Zap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -12,7 +12,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 
 import { useTasks } from "@/hooks/useTasks";
 import { useDashboardLayout } from "@/hooks/useDashboardLayout";
-import DueDashboardWidget from "@/components/DueDashboardWidget";
+
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -23,7 +23,6 @@ function getGreeting() {
 }
 
 const WIDGET_META: Record<string, { label: string; icon: React.ReactNode }> = {
-  dues: { label: "Due Collection", icon: <Users2 className="h-3.5 w-3.5" /> },
   priorities: { label: "Top Priorities", icon: <Target className="h-3.5 w-3.5" /> },
   stats: { label: "Quick Stats", icon: <Zap className="h-3.5 w-3.5" /> },
   habits: { label: "Today's Habits", icon: <Heart className="h-3.5 w-3.5" /> },
@@ -110,18 +109,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Due Collection */}
-      {visibility.dues !== false && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Users2 className="h-3.5 w-3.5 text-primary" />
-            </div>
-            <h2 className="text-lg font-bold font-display text-foreground">Due Collection</h2>
-          </div>
-          <DueDashboardWidget />
-        </div>
-      )}
+
 
       {/* Quick Stats Row */}
       {visibility.stats !== false && (
