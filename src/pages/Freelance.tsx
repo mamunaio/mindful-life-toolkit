@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { useFreelance } from "@/hooks/useFreelance";
 import { generateInvoicePDF } from "@/lib/generateInvoice";
+import FreelanceCharts from "@/components/FreelanceCharts";
 
 const STATUS_STYLES: Record<string, string> = {
   active: "bg-success/10 text-success",
@@ -56,6 +57,9 @@ export default function Freelance() {
         <StatCard icon={Receipt} label="Expenses" value={`$${totalExpenses.toFixed(0)}`} color="bg-destructive/80" />
         <StatCard icon={DollarSign} label="Net Profit" value={`$${netProfit.toFixed(0)}`} color="bg-secondary" textColor={netProfit >= 0 ? "text-success" : "text-destructive"} />
       </div>
+
+      {/* Charts */}
+      <FreelanceCharts payments={payments} expenses={expenses} clients={clients} />
 
       <Tabs defaultValue="clients" className="space-y-4">
         <TabsList className="grid w-full grid-cols-5">
