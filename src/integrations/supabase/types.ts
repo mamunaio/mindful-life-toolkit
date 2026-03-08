@@ -467,6 +467,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          dashboard_layout: Json
           display_name: string | null
           id: string
           notification_preferences: Json
@@ -476,6 +477,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          dashboard_layout?: Json
           display_name?: string | null
           id?: string
           notification_preferences?: Json
@@ -485,6 +487,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          dashboard_layout?: Json
           display_name?: string | null
           id?: string
           notification_preferences?: Json
