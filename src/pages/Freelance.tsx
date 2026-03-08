@@ -20,13 +20,13 @@ import ReportsTab from "@/components/ReportsTab";
 import { useTimeTracking } from "@/hooks/useTimeTracking";
 
 const STATUS_STYLES: Record<string, string> = {
-  active: "bg-success/10 text-success",
-  completed: "bg-primary/10 text-primary",
-  paused: "bg-warning/10 text-warning",
-  cancelled: "bg-destructive/10 text-destructive",
-  pending: "bg-warning/10 text-warning",
-  paid: "bg-success/10 text-success",
-  overdue: "bg-destructive/10 text-destructive",
+  active: "bg-success/10 text-success border-success/20",
+  completed: "bg-primary/10 text-primary border-primary/20",
+  paused: "bg-warning/10 text-warning border-warning/20",
+  cancelled: "bg-destructive/10 text-destructive border-destructive/20",
+  pending: "bg-warning/10 text-warning border-warning/20",
+  paid: "bg-success/10 text-success border-success/20",
+  overdue: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
 const EXPENSE_CATEGORIES = ["software", "hardware", "hosting", "marketing", "education", "travel", "office", "other"];
@@ -47,7 +47,6 @@ export default function Freelance() {
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [invoicePrefill, setInvoicePrefill] = useState<any>(null);
 
-  // Stats
   const totalEarned = payments.filter((p) => p.status === "paid").reduce((s, p) => s + p.amount, 0);
   const totalPending = payments.filter((p) => p.status === "pending").reduce((s, p) => s + p.amount, 0);
   const totalWithdrawn = withdrawals.reduce((s, w) => s + w.amount, 0);
@@ -55,26 +54,25 @@ export default function Freelance() {
   const netProfit = totalEarned - totalExpenses;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-3xl font-bold font-display tracking-tight">Freelance</h1>
-        <p className="text-muted-foreground mt-1">Manage your clients, projects, and finances</p>
+    <div className="page-container space-y-8 animate-in fade-in duration-500">
+      <div className="page-header">
+        <h1 className="page-title">Freelance</h1>
+        <p className="page-subtitle">Manage your clients, projects, and finances</p>
       </div>
 
-      {/* Overview Cards */}
+      {/* Overview */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <StatCard icon={TrendingUp} label="Earned" value={`$${totalEarned.toFixed(0)}`} color="gradient-primary" />
-        <StatCard icon={Clock} label="Pending" value={`$${totalPending.toFixed(0)}`} color="gradient-warm" />
-        <StatCard icon={ArrowDownToLine} label="Withdrawn" value={`$${totalWithdrawn.toFixed(0)}`} color="gradient-cool" />
-        <StatCard icon={Receipt} label="Expenses" value={`$${totalExpenses.toFixed(0)}`} color="bg-destructive/80" />
-        <StatCard icon={DollarSign} label="Net Profit" value={`$${netProfit.toFixed(0)}`} color="bg-secondary" textColor={netProfit >= 0 ? "text-success" : "text-destructive"} />
+        <StatCard icon={TrendingUp} label="Earned" value={`$${totalEarned.toFixed(0)}`} gradient="gradient-primary" />
+        <StatCard icon={Clock} label="Pending" value={`$${totalPending.toFixed(0)}`} gradient="gradient-warm" />
+        <StatCard icon={ArrowDownToLine} label="Withdrawn" value={`$${totalWithdrawn.toFixed(0)}`} gradient="gradient-cool" />
+        <StatCard icon={Receipt} label="Expenses" value={`$${totalExpenses.toFixed(0)}`} gradient="bg-destructive/80" />
+        <StatCard icon={DollarSign} label="Net Profit" value={`$${netProfit.toFixed(0)}`} gradient="bg-secondary" textColor={netProfit >= 0 ? "text-success" : "text-destructive"} />
       </div>
 
-      {/* Charts */}
       <FreelanceCharts payments={payments} expenses={expenses} clients={clients} />
 
-      <Tabs defaultValue="clients" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5 sm:grid-cols-9">
+      <Tabs defaultValue="clients" className="space-y-5">
+        <TabsList className="grid w-full grid-cols-5 sm:grid-cols-9 h-10">
           <TabsTrigger value="clients" className="gap-1 text-xs sm:text-sm"><Users className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Clients</span></TabsTrigger>
           <TabsTrigger value="proposals" className="gap-1 text-xs sm:text-sm"><FileCheck className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Proposals</span></TabsTrigger>
           <TabsTrigger value="projects" className="gap-1 text-xs sm:text-sm"><FolderKanban className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Projects</span></TabsTrigger>
@@ -86,76 +84,36 @@ export default function Freelance() {
           <TabsTrigger value="reports" className="gap-1 text-xs sm:text-sm"><BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Reports</span></TabsTrigger>
         </TabsList>
 
-        <TabsContent value="clients">
-          <ClientsTab clients={clients} addClient={addClient} deleteClient={deleteClient} />
-        </TabsContent>
-
-        <TabsContent value="proposals">
-          <ProposalsTab clients={clients} projects={projects} addProject={addProject} />
-        </TabsContent>
-
-        <TabsContent value="projects">
-          <ProjectsTab projects={projects} clients={clients} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} />
-        </TabsContent>
-
-        <TabsContent value="time">
-          <TimeTrackingTab clients={clients} projects={projects} />
-        </TabsContent>
-
+        <TabsContent value="clients"><ClientsTab clients={clients} addClient={addClient} deleteClient={deleteClient} /></TabsContent>
+        <TabsContent value="proposals"><ProposalsTab clients={clients} projects={projects} addProject={addProject} /></TabsContent>
+        <TabsContent value="projects"><ProjectsTab projects={projects} clients={clients} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} /></TabsContent>
+        <TabsContent value="time"><TimeTrackingTab clients={clients} projects={projects} /></TabsContent>
         <TabsContent value="payments">
-          <PaymentsTab
-            payments={payments} clients={clients} projects={projects}
-            addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment}
-            onCreateInvoice={(prefill: any) => { setInvoicePrefill(prefill); setInvoiceOpen(true); }}
-          />
+          <PaymentsTab payments={payments} clients={clients} projects={projects} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment}
+            onCreateInvoice={(prefill: any) => { setInvoicePrefill(prefill); setInvoiceOpen(true); }} />
         </TabsContent>
-
         <TabsContent value="invoices">
-          <InvoicesTab
-            invoices={invoices}
-            clients={clients}
-            settings={settings}
-            deleteInvoice={deleteInvoice}
-            onNewInvoice={() => { setInvoicePrefill(null); setInvoiceOpen(true); }}
-          />
+          <InvoicesTab invoices={invoices} clients={clients} settings={settings} deleteInvoice={deleteInvoice} onNewInvoice={() => { setInvoicePrefill(null); setInvoiceOpen(true); }} />
         </TabsContent>
-
-        <TabsContent value="withdrawals">
-          <WithdrawalsTab withdrawals={withdrawals} addWithdrawal={addWithdrawal} deleteWithdrawal={deleteWithdrawal} />
-        </TabsContent>
-
-        <TabsContent value="expenses">
-          <ExpensesTab expenses={expenses} addExpense={addExpense} deleteExpense={deleteExpense} />
-        </TabsContent>
-
-        <TabsContent value="reports">
-          <ReportsTab payments={payments} expenses={expenses} clients={clients} projects={projects} withdrawals={withdrawals} timeEntries={timeEntries} />
-        </TabsContent>
+        <TabsContent value="withdrawals"><WithdrawalsTab withdrawals={withdrawals} addWithdrawal={addWithdrawal} deleteWithdrawal={deleteWithdrawal} /></TabsContent>
+        <TabsContent value="expenses"><ExpensesTab expenses={expenses} addExpense={addExpense} deleteExpense={deleteExpense} /></TabsContent>
+        <TabsContent value="reports"><ReportsTab payments={payments} expenses={expenses} clients={clients} projects={projects} withdrawals={withdrawals} timeEntries={timeEntries} /></TabsContent>
       </Tabs>
 
-      <InvoiceBuilder
-        open={invoiceOpen}
-        onOpenChange={setInvoiceOpen}
-        settings={settings}
-        onSaveSettings={saveSettings}
-        onSaveInvoice={addInvoice}
-        clients={clients}
-        projects={projects}
-        prefill={invoicePrefill}
-      />
+      <InvoiceBuilder open={invoiceOpen} onOpenChange={setInvoiceOpen} settings={settings} onSaveSettings={saveSettings} onSaveInvoice={addInvoice} clients={clients} projects={projects} prefill={invoicePrefill} />
     </div>
   );
 }
 
-function StatCard({ icon: Icon, label, value, color, textColor }: { icon: any; label: string; value: string; color: string; textColor?: string }) {
+function StatCard({ icon: Icon, label, value, gradient, textColor }: { icon: any; label: string; value: string; gradient: string; textColor?: string }) {
   return (
-    <Card>
+    <Card className="card-elevated">
       <CardContent className="p-4">
-        <div className={`w-8 h-8 rounded-lg ${color} flex items-center justify-center mb-2`}>
+        <div className={`w-8 h-8 rounded-lg ${gradient} flex items-center justify-center mb-2`}>
           <Icon className="h-4 w-4 text-primary-foreground" />
         </div>
         <p className={`text-lg font-bold font-display ${textColor || "text-card-foreground"}`}>{value}</p>
-        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-[11px] text-muted-foreground font-medium">{label}</p>
       </CardContent>
     </Card>
   );
@@ -179,14 +137,14 @@ function ClientsTab({ clients, addClient, deleteClient }: any) {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button className="gap-1"><Plus className="h-4 w-4" /> Add Client</Button></DialogTrigger>
+          <DialogTrigger asChild><Button className="gap-1 h-9"><Plus className="h-4 w-4" /> Add Client</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle className="font-display">New Client</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
-              <div className="space-y-1"><Label>Name *</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Client name" /></div>
-              <div className="space-y-1"><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="client@email.com" /></div>
-              <div className="space-y-1"><Label>Company</Label><Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Company name" /></div>
-              <div className="space-y-1"><Label>Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any notes..." /></div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Name *</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Client name" /></div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="client@email.com" /></div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Company</Label><Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Company name" /></div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any notes..." /></div>
               <Button className="w-full" onClick={handleAdd} disabled={!name.trim()}>Add Client</Button>
             </div>
           </DialogContent>
@@ -197,13 +155,13 @@ function ClientsTab({ clients, addClient, deleteClient }: any) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {clients.map((c: any) => (
-            <Card key={c.id} className="group">
+            <Card key={c.id} className="group card-elevated">
               <CardContent className="p-4 flex justify-between items-start">
                 <div>
-                  <p className="font-semibold text-card-foreground">{c.name}</p>
-                  {c.company && <p className="text-xs text-muted-foreground">{c.company}</p>}
-                  {c.email && <p className="text-xs text-muted-foreground">{c.email}</p>}
-                  {c.notes && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{c.notes}</p>}
+                  <p className="font-semibold text-card-foreground text-sm">{c.name}</p>
+                  {c.company && <p className="text-[11px] text-muted-foreground">{c.company}</p>}
+                  {c.email && <p className="text-[11px] text-muted-foreground">{c.email}</p>}
+                  {c.notes && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{c.notes}</p>}
                 </div>
                 <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => deleteClient(c.id)}>
                   <Trash2 className="h-3 w-3" />
@@ -228,10 +186,7 @@ function ProjectsTab({ projects, clients, addProject, updateProject, deleteProje
 
   const handleAdd = () => {
     if (!name.trim()) return;
-    addProject({
-      name: name.trim(), client_id: clientId || null, description: description || null,
-      status: "active", budget: budget ? parseFloat(budget) : null, deadline: deadline || null,
-    });
+    addProject({ name: name.trim(), client_id: clientId || null, description: description || null, status: "active", budget: budget ? parseFloat(budget) : null, deadline: deadline || null });
     setName(""); setClientId(""); setDescription(""); setBudget(""); setDeadline(""); setOpen(false);
   };
 
@@ -239,23 +194,21 @@ function ProjectsTab({ projects, clients, addProject, updateProject, deleteProje
     <div className="space-y-4">
       <div className="flex justify-end">
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button className="gap-1"><Plus className="h-4 w-4" /> Add Project</Button></DialogTrigger>
+          <DialogTrigger asChild><Button className="gap-1 h-9"><Plus className="h-4 w-4" /> Add Project</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle className="font-display">New Project</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
-              <div className="space-y-1"><Label>Name *</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Project name" /></div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Name *</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Project name" /></div>
               <div className="space-y-1">
-                <Label>Client</Label>
+                <Label className="text-xs font-medium">Client</Label>
                 <Select value={clientId} onValueChange={setClientId}>
                   <SelectTrigger><SelectValue placeholder="Select client (optional)" /></SelectTrigger>
-                  <SelectContent>
-                    {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
+                  <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1"><Label>Budget</Label><Input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="0.00" /></div>
-              <div className="space-y-1"><Label>Deadline</Label><Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} /></div>
-              <div className="space-y-1"><Label>Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Project details..." /></div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Budget</Label><Input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="0.00" /></div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Deadline</Label><Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} /></div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Project details..." /></div>
               <Button className="w-full" onClick={handleAdd} disabled={!name.trim()}>Add Project</Button>
             </div>
           </DialogContent>
@@ -268,14 +221,14 @@ function ProjectsTab({ projects, clients, addProject, updateProject, deleteProje
           {projects.map((p: any) => {
             const client = clients.find((c: any) => c.id === p.client_id);
             return (
-              <Card key={p.id} className="group">
+              <Card key={p.id} className="group card-elevated">
                 <CardContent className="p-4 flex items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-card-foreground">{p.name}</p>
-                      <Badge className={`text-[10px] ${STATUS_STYLES[p.status] || ""}`}>{p.status}</Badge>
+                      <p className="font-semibold text-card-foreground text-sm">{p.name}</p>
+                      <Badge className={`text-[10px] border ${STATUS_STYLES[p.status] || ""}`}>{p.status}</Badge>
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
                       {client && <span>{client.name}</span>}
                       {p.budget && <span>${Number(p.budget).toFixed(0)}</span>}
                       {p.deadline && <span>Due {p.deadline}</span>}
@@ -316,10 +269,7 @@ function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, d
 
   const handleAdd = () => {
     if (!amount) return;
-    addPayment({
-      amount: parseFloat(amount), client_id: clientId || null, project_id: projectId || null,
-      description: description || null, status, date: new Date().toISOString().split("T")[0],
-    });
+    addPayment({ amount: parseFloat(amount), client_id: clientId || null, project_id: projectId || null, description: description || null, status, date: new Date().toISOString().split("T")[0] });
     setAmount(""); setClientId(""); setProjectId(""); setDescription(""); setStatus("pending"); setOpen(false);
   };
 
@@ -329,27 +279,28 @@ function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, d
     <div className="space-y-4">
       <div className="flex justify-end">
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button className="gap-1"><Plus className="h-4 w-4" /> Add Payment</Button></DialogTrigger>
+          <DialogTrigger asChild><Button className="gap-1 h-9"><Plus className="h-4 w-4" /> Add Payment</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle className="font-display">New Payment</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
-              <div className="space-y-1"><Label>Amount *</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" /></div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Amount *</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" /></div>
               <div className="space-y-1">
-                <Label>Client</Label>
+                <Label className="text-xs font-medium">Client</Label>
                 <Select value={clientId} onValueChange={setClientId}>
                   <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
                   <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label>Project</Label>
+                <Label className="text-xs font-medium">Project</Label>
                 <Select value={projectId} onValueChange={setProjectId}>
                   <SelectTrigger><SelectValue placeholder="Select project" /></SelectTrigger>
                   <SelectContent>{projects.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Description</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Payment for..." /></div>
               <div className="space-y-1">
-                <Label>Status</Label>
+                <Label className="text-xs font-medium">Status</Label>
                 <Select value={status} onValueChange={setStatus}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -359,7 +310,6 @@ function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, d
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1"><Label>Description</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Payment details" /></div>
               <Button className="w-full" onClick={handleAdd} disabled={!amount}>Add Payment</Button>
             </div>
           </DialogContent>
@@ -373,34 +323,18 @@ function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, d
             const client = clients.find((c: any) => c.id === p.client_id);
             const project = projects.find((pr: any) => pr.id === p.project_id);
             return (
-              <Card key={p.id} className="group">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Badge className={`gap-1 ${STATUS_STYLES[p.status]}`}>{statusIcon(p.status)} {p.status}</Badge>
-                    <div>
-                      <p className="text-sm font-medium text-card-foreground">${Number(p.amount).toFixed(2)}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {client?.name || ""}{project ? ` · ${project.name}` : ""}{p.description ? ` · ${p.description}` : ""} · {p.date}
-                      </p>
+              <Card key={p.id} className="group card-elevated">
+                <CardContent className="p-4 flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold font-display text-card-foreground">${p.amount.toFixed(2)}</p>
+                      <Badge className={`text-[10px] gap-1 border ${STATUS_STYLES[p.status] || ""}`}>{statusIcon(p.status)} {p.status}</Badge>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      {client?.name}{project ? ` · ${project.name}` : ""}{p.description ? ` — ${p.description}` : ""} · {p.date}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-primary"
-                      title="Create Invoice"
-                      onClick={() => onCreateInvoice({
-                        paymentId: p.id,
-                        clientId: p.client_id,
-                        projectId: p.project_id,
-                        amount: Number(p.amount),
-                        description: p.description,
-                        status: p.status,
-                      })}
-                    >
-                      <FileDown className="h-3 w-3" />
-                    </Button>
+                  <div className="flex items-center gap-1 shrink-0">
                     <Select value={p.status} onValueChange={(s) => updatePayment(p.id, { status: s })}>
                       <SelectTrigger className="h-7 w-[90px] text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -409,7 +343,10 @@ function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, d
                         <SelectItem value="overdue">Overdue</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:text-destructive" onClick={() => deletePayment(p.id)}>
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => onCreateInvoice({ paymentId: p.id, clientId: p.client_id, projectId: p.project_id, amount: p.amount, description: p.description, status: p.status })}>
+                      <FileText className="h-3 w-3" /> Invoice
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => deletePayment(p.id)}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
@@ -428,79 +365,45 @@ function InvoicesTab({ invoices, clients, settings, deleteInvoice, onNewInvoice 
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button className="gap-1" onClick={onNewInvoice}>
-          <Plus className="h-4 w-4" /> New Invoice
-        </Button>
+        <Button className="gap-1 h-9" onClick={onNewInvoice}><Plus className="h-4 w-4" /> New Invoice</Button>
       </div>
       {invoices.length === 0 ? (
         <EmptyState icon={FileText} text="No invoices yet. Create one from a payment or start fresh!" />
       ) : (
         <div className="space-y-2">
-          {invoices.map((inv: any) => {
-            const client = clients.find((c: any) => c.id === inv.client_id);
-            return (
-              <Card key={inv.id} className="group">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Badge className={`gap-1 ${STATUS_STYLES[inv.status] || "bg-muted text-muted-foreground"}`}>
-                      {inv.status}
-                    </Badge>
-                    <div>
-                      <p className="text-sm font-semibold text-card-foreground">#{inv.invoice_number}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {inv.client_name}{inv.total ? ` · $${Number(inv.total).toFixed(2)}` : ""} · {inv.issued_date}
-                      </p>
-                    </div>
+          {invoices.map((inv: any) => (
+            <Card key={inv.id} className="group card-elevated">
+              <CardContent className="p-4 flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-card-foreground text-sm">{inv.invoice_number}</p>
+                    <Badge className={`text-[10px] border ${STATUS_STYLES[inv.status] || ""}`}>{inv.status}</Badge>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-primary"
-                      title="Download PDF"
-                      onClick={() => {
-                        generateInvoicePDF({
-                          invoiceNumber: inv.invoice_number,
-                          issuedDate: inv.issued_date,
-                          dueDate: inv.due_date || undefined,
-                          status: inv.status,
-                          clientName: inv.client_name,
-                          clientEmail: inv.client_email,
-                          clientCompany: inv.client_company,
-                          businessName: settings.business_name,
-                          businessEmail: settings.business_email,
-                          businessAddress: settings.business_address,
-                          businessPhone: settings.business_phone,
-                          lineItems: inv.line_items || [],
-                          subtotal: Number(inv.subtotal),
-                          taxRate: Number(inv.tax_rate),
-                          taxAmount: Number(inv.tax_amount),
-                          discountPercent: Number(inv.discount_percent),
-                          discountAmount: Number(inv.discount_amount),
-                          total: Number(inv.total),
-                          notes: inv.notes,
-                          paymentTerms: settings.payment_terms,
-                          template: inv.template as any,
-                          currency: settings.default_currency,
-                        });
-                      }}
-                    >
-                      <FileDown className="h-3 w-3" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:text-destructive" onClick={() => deleteInvoice(inv.id)}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    {inv.client_name} · ${inv.total.toFixed(2)} · {inv.issued_date}
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                    const invoiceData = { invoiceNumber: inv.invoice_number, issuedDate: inv.issued_date, dueDate: inv.due_date, clientName: inv.client_name, clientEmail: inv.client_email, clientCompany: inv.client_company, lineItems: inv.line_items, subtotal: inv.subtotal, taxRate: inv.tax_rate, taxAmount: inv.tax_amount, discountPercent: inv.discount_percent, discountAmount: inv.discount_amount, total: inv.total, notes: inv.notes, template: inv.template, status: inv.status };
+                    generateInvoicePDF(invoiceData);
+                  }}>
+                    <FileDown className="h-3 w-3" /> PDF
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => deleteInvoice(inv.id)}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
+/* ==================== WITHDRAWALS TAB ==================== */
 function WithdrawalsTab({ withdrawals, addWithdrawal, deleteWithdrawal }: any) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
@@ -517,41 +420,36 @@ function WithdrawalsTab({ withdrawals, addWithdrawal, deleteWithdrawal }: any) {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button className="gap-1"><Plus className="h-4 w-4" /> Add Withdrawal</Button></DialogTrigger>
+          <DialogTrigger asChild><Button className="gap-1 h-9"><Plus className="h-4 w-4" /> Add Withdrawal</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle className="font-display">New Withdrawal</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
-              <div className="space-y-1"><Label>Amount *</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" /></div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Amount *</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" /></div>
               <div className="space-y-1">
-                <Label>Method</Label>
+                <Label className="text-xs font-medium">Method</Label>
                 <Select value={method} onValueChange={setMethod}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {WITHDRAWAL_METHODS.map((m) => <SelectItem key={m} value={m}>{m.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}</SelectItem>)}
-                  </SelectContent>
+                  <SelectContent>{WITHDRAWAL_METHODS.map((m) => <SelectItem key={m} value={m}>{m.replace("_", " ")}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1"><Label>Description</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Details" /></div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Description</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Notes..." /></div>
               <Button className="w-full" onClick={handleAdd} disabled={!amount}>Add Withdrawal</Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
       {withdrawals.length === 0 ? (
-        <EmptyState icon={ArrowDownToLine} text="No withdrawals recorded yet." />
+        <EmptyState icon={ArrowDownToLine} text="No withdrawals yet." />
       ) : (
         <div className="space-y-2">
           {withdrawals.map((w: any) => (
-            <Card key={w.id} className="group">
+            <Card key={w.id} className="group card-elevated">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-card-foreground">${Number(w.amount).toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {w.method.replace("_", " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
-                    {w.description ? ` · ${w.description}` : ""} · {w.date}
-                  </p>
+                  <p className="font-bold font-display text-card-foreground">${w.amount.toFixed(2)}</p>
+                  <p className="text-[11px] text-muted-foreground">{w.method.replace("_", " ")} · {w.date}{w.description ? ` — ${w.description}` : ""}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:text-destructive" onClick={() => deleteWithdrawal(w.id)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => deleteWithdrawal(w.id)}>
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </CardContent>
@@ -580,41 +478,39 @@ function ExpensesTab({ expenses, addExpense, deleteExpense }: any) {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button className="gap-1"><Plus className="h-4 w-4" /> Add Expense</Button></DialogTrigger>
+          <DialogTrigger asChild><Button className="gap-1 h-9"><Plus className="h-4 w-4" /> Add Expense</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle className="font-display">New Freelance Expense</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle className="font-display">New Business Expense</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
-              <div className="space-y-1"><Label>Amount *</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" /></div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Amount *</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" /></div>
               <div className="space-y-1">
-                <Label>Category</Label>
+                <Label className="text-xs font-medium">Category</Label>
                 <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {EXPENSE_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>)}
-                  </SelectContent>
+                  <SelectContent>{EXPENSE_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1"><Label>Description</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What was it for?" /></div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Description</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What was this for?" /></div>
               <Button className="w-full" onClick={handleAdd} disabled={!amount}>Add Expense</Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
       {expenses.length === 0 ? (
-        <EmptyState icon={Receipt} text="No freelance expenses yet." />
+        <EmptyState icon={Receipt} text="No business expenses recorded yet." />
       ) : (
         <div className="space-y-2">
           {expenses.map((e: any) => (
-            <Card key={e.id} className="group">
+            <Card key={e.id} className="group card-elevated">
               <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Badge variant="secondary" className="text-xs capitalize">{e.category}</Badge>
-                  <div>
-                    <p className="text-sm font-semibold text-destructive">-${Number(e.amount).toFixed(2)}</p>
-                    <p className="text-xs text-muted-foreground">{e.description || e.category} · {e.date}</p>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold font-display text-destructive">${e.amount.toFixed(2)}</p>
+                    <Badge variant="secondary" className="text-[10px]">{e.category}</Badge>
                   </div>
+                  <p className="text-[11px] text-muted-foreground">{e.date}{e.description ? ` — ${e.description}` : ""}</p>
                 </div>
-                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:text-destructive" onClick={() => deleteExpense(e.id)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => deleteExpense(e.id)}>
                   <Trash2 className="h-3 w-3" />
                 </Button>
               </CardContent>
@@ -628,8 +524,8 @@ function ExpensesTab({ expenses, addExpense, deleteExpense }: any) {
 
 function EmptyState({ icon: Icon, text }: { icon: any; text: string }) {
   return (
-    <div className="text-center py-16 text-muted-foreground">
-      <Icon className="h-10 w-10 mx-auto mb-3 opacity-30" />
+    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+      <Icon className="h-10 w-10 mb-3 opacity-20" />
       <p className="text-sm">{text}</p>
     </div>
   );
