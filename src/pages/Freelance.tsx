@@ -385,7 +385,7 @@ function InvoicesTab({ invoices, clients, settings, deleteInvoice, onNewInvoice 
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
-                    const invoiceData = { invoiceNumber: inv.invoice_number, issuedDate: inv.issued_date, dueDate: inv.due_date, clientName: inv.client_name, clientEmail: inv.client_email, clientCompany: inv.client_company, lineItems: inv.line_items, subtotal: inv.subtotal, taxRate: inv.tax_rate, taxAmount: inv.tax_amount, discountPercent: inv.discount_percent, discountAmount: inv.discount_amount, total: inv.total, notes: inv.notes, template: inv.template };
+                    const invoiceData = { invoiceNumber: inv.invoice_number, issuedDate: inv.issued_date, dueDate: inv.due_date, clientName: inv.client_name, clientEmail: inv.client_email, clientCompany: inv.client_company, lineItems: inv.line_items, subtotal: inv.subtotal, taxRate: inv.tax_rate, taxAmount: inv.tax_amount, discountPercent: inv.discount_percent, discountAmount: inv.discount_amount, total: inv.total, notes: inv.notes, template: inv.template, status: inv.status };
                     generateInvoicePDF(invoiceData);
                   }}>
                     <FileDown className="h-3 w-3" /> PDF
