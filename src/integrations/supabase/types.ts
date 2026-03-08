@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      brain_dumps: {
+        Row: {
+          content: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       budgets: {
         Row: {
           category: string
@@ -34,6 +55,161 @@ export type Database = {
           created_at?: string
           id?: string
           monthly_limit?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      checklist_items: {
+        Row: {
+          checklist_id: string
+          created_at: string
+          done: boolean
+          id: string
+          text: string
+          user_id: string
+        }
+        Insert: {
+          checklist_id: string
+          created_at?: string
+          done?: boolean
+          id?: string
+          text: string
+          user_id: string
+        }
+        Update: {
+          checklist_id?: string
+          created_at?: string
+          done?: boolean
+          id?: string
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_items_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "checklists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklists: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      health_days: {
+        Row: {
+          created_at: string
+          date: string
+          habits: Json
+          id: string
+          mood: string | null
+          user_id: string
+          water: number
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          habits?: Json
+          id?: string
+          mood?: string | null
+          user_id: string
+          water?: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          habits?: Json
+          id?: string
+          mood?: string | null
+          user_id?: string
+          water?: number
+        }
+        Relationships: []
+      }
+      journal_entries: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          column_id: string
+          created_at: string
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          column_id?: string
+          created_at?: string
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          column_id?: string
+          created_at?: string
+          id?: string
+          title?: string
           user_id?: string
         }
         Relationships: []
