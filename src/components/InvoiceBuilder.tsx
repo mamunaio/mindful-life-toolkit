@@ -52,7 +52,7 @@ export default function InvoiceBuilder({
   const [defaultCurrency, setDefaultCurrency] = useState(settings.default_currency || "USD");
 
   useEffect(() => {
-    setBizName(settings.business_name || "");
+    setBizName(settings.business_name || "Injaazh PLC");
     setBizEmail(settings.business_email || "");
     setBizAddress(settings.business_address || "");
     setBizPhone(settings.business_phone || "");
