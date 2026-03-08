@@ -286,7 +286,7 @@ function ProjectsTab({ projects, clients, addProject, updateProject, deleteProje
 }
 
 /* ==================== PAYMENTS TAB ==================== */
-function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, deletePayment }: any) {
+function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, deletePayment, onCreateInvoice }: any) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [clientId, setClientId] = useState("");
@@ -369,21 +369,15 @@ function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, d
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-muted-foreground hover:text-primary"
-                      title="Download Invoice"
-                      onClick={() => {
-                        const invNum = `INV-${p.date.replace(/-/g, "")}-${p.id.slice(0, 4).toUpperCase()}`;
-                        generateInvoicePDF({
-                          invoiceNumber: invNum,
-                          date: p.date,
-                          clientName: client?.name || "Client",
-                          clientEmail: client?.email,
-                          clientCompany: client?.company,
-                          projectName: project?.name,
-                          amount: Number(p.amount),
-                          description: p.description,
-                          status: p.status,
-                        });
-                      }}
+                      title="Create Invoice"
+                      onClick={() => onCreateInvoice({
+                        paymentId: p.id,
+                        clientId: p.client_id,
+                        projectId: p.project_id,
+                        amount: Number(p.amount),
+                        description: p.description,
+                        status: p.status,
+                      })}
                     >
                       <FileDown className="h-3 w-3" />
                     </Button>
@@ -397,6 +391,7 @@ function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, d
                     </Select>
                     <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 hover:text-destructive" onClick={() => deletePayment(p.id)}>
                       <Trash2 className="h-3 w-3" />
+                    </Button>
                     </Button>
                   </div>
                 </CardContent>
