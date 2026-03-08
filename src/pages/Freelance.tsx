@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, TrendingDown, DollarSign, CheckCircle, Clock, AlertCircle, FileDown } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, TrendingDown, DollarSign, CheckCircle, Clock, AlertCircle, FileDown, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useFreelance } from "@/hooks/useFreelance";
+import { useInvoices } from "@/hooks/useInvoices";
 import { generateInvoicePDF } from "@/lib/generateInvoice";
+import InvoiceBuilder from "@/components/InvoiceBuilder";
 import FreelanceCharts from "@/components/FreelanceCharts";
 
 const STATUS_STYLES: Record<string, string> = {
