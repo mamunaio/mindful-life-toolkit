@@ -537,6 +537,81 @@ export type Database = {
           },
         ]
       }
+      proposals: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          deliverables: Json
+          id: string
+          notes: string | null
+          payment_terms: string | null
+          project_id: string | null
+          scope: string | null
+          status: string
+          template: string
+          timeline: string | null
+          title: string
+          total_amount: number | null
+          type: string
+          updated_at: string
+          user_id: string
+          valid_until: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          deliverables?: Json
+          id?: string
+          notes?: string | null
+          payment_terms?: string | null
+          project_id?: string | null
+          scope?: string | null
+          status?: string
+          template?: string
+          timeline?: string | null
+          title: string
+          total_amount?: number | null
+          type?: string
+          updated_at?: string
+          user_id: string
+          valid_until?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          deliverables?: Json
+          id?: string
+          notes?: string | null
+          payment_terms?: string | null
+          project_id?: string | null
+          scope?: string | null
+          status?: string
+          template?: string
+          timeline?: string | null
+          title?: string
+          total_amount?: number | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           column_id: string

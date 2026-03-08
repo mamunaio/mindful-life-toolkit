@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, TrendingDown, DollarSign, CheckCircle, Clock, AlertCircle, FileDown, FileText, Timer } from "lucide-react";
+import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, TrendingDown, DollarSign, CheckCircle, Clock, AlertCircle, FileDown, FileText, Timer, FileCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { generateInvoicePDF } from "@/lib/generateInvoice";
 import InvoiceBuilder from "@/components/InvoiceBuilder";
 import FreelanceCharts from "@/components/FreelanceCharts";
 import TimeTrackingTab from "@/components/TimeTrackingTab";
+import ProposalsTab from "@/components/ProposalsTab";
 
 const STATUS_STYLES: Record<string, string> = {
   active: "bg-success/10 text-success",
@@ -70,8 +71,9 @@ export default function Freelance() {
       <FreelanceCharts payments={payments} expenses={expenses} clients={clients} />
 
       <Tabs defaultValue="clients" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8">
           <TabsTrigger value="clients" className="gap-1 text-xs sm:text-sm"><Users className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Clients</span></TabsTrigger>
+          <TabsTrigger value="proposals" className="gap-1 text-xs sm:text-sm"><FileCheck className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Proposals</span></TabsTrigger>
           <TabsTrigger value="projects" className="gap-1 text-xs sm:text-sm"><FolderKanban className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Projects</span></TabsTrigger>
           <TabsTrigger value="time" className="gap-1 text-xs sm:text-sm"><Timer className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Time</span></TabsTrigger>
           <TabsTrigger value="payments" className="gap-1 text-xs sm:text-sm"><CreditCard className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Payments</span></TabsTrigger>
@@ -82,6 +84,10 @@ export default function Freelance() {
 
         <TabsContent value="clients">
           <ClientsTab clients={clients} addClient={addClient} deleteClient={deleteClient} />
+        </TabsContent>
+
+        <TabsContent value="proposals">
+          <ProposalsTab clients={clients} projects={projects} addProject={addProject} />
         </TabsContent>
 
         <TabsContent value="projects">
