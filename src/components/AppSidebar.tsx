@@ -23,6 +23,7 @@ const items = [
   { title: "Freelance", url: "/freelance", icon: Briefcase },
   { title: "Health", url: "/health", icon: Heart },
   { title: "Notes", url: "/notes", icon: BookOpen },
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
