@@ -11,6 +11,7 @@ import Finance from "./pages/Finance";
 import Health from "./pages/Health";
 import Freelance from "./pages/Freelance";
 import Notes from "./pages/Notes";
+import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
