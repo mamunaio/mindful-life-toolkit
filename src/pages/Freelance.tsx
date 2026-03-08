@@ -42,6 +42,7 @@ export default function Freelance() {
   } = useFreelance();
 
   const { settings, saveSettings, invoices, addInvoice, updateInvoice, deleteInvoice } = useInvoices();
+  const { entries: timeEntries } = useTimeTracking();
 
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [invoicePrefill, setInvoicePrefill] = useState<any>(null);
