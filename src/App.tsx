@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Finance from "./pages/Finance";
 import Health from "./pages/Health";
+import Freelance from "./pages/Freelance";
 import Notes from "./pages/Notes";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
