@@ -69,7 +69,7 @@ export default function Finance() {
   const categories = type === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
 
   return (
-    <div className="page-container space-y-8 animate-in fade-in duration-500">
+    <div className="page-container space-y-8">
       <div className="flex items-center justify-between">
         <div className="page-header mb-0">
           <h1 className="page-title">Finance</h1>

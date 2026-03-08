@@ -51,7 +51,7 @@ export default function Notes() {
   };
 
   return (
-    <div className="page-container space-y-8 animate-in fade-in duration-500">
+    <div className="page-container space-y-8">
       <div className="page-header">
         <h1 className="page-title">Notes</h1>
         <p className="page-subtitle">Journal, brain dump, and checklists</p>

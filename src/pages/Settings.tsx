@@ -122,7 +122,7 @@ export default function Settings() {
   const initials = (name || user?.email || "U").slice(0, 2).toUpperCase();
 
   return (
-    <div className="page-container space-y-8 animate-in fade-in duration-500">
+    <div className="page-container space-y-8">
       <div className="page-header">
         <h1 className="page-title">Settings</h1>
         <p className="page-subtitle">Manage your profile and account preferences</p>

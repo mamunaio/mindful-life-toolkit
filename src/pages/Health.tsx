@@ -15,7 +15,7 @@ export default function Health() {
   const glasses = Array.from({ length: 8 }, (_, i) => i < today.water / 250);
 
   return (
-    <div className="page-container space-y-8 animate-in fade-in duration-500">
+    <div className="page-container space-y-8">
       <div className="page-header">
         <h1 className="page-title">Health</h1>
         <p className="page-subtitle">{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</p>
