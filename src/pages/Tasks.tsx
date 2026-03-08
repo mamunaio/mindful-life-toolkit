@@ -474,6 +474,11 @@ export default function Tasks() {
         })}
       </div>
 
+      {/* Pomodoro Timer */}
+      <div className="max-w-sm">
+        <PomodoroTimer />
+      </div>
+
       {/* Edit Task Dialog */}
       <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
         <DialogContent className="sm:max-w-md">
