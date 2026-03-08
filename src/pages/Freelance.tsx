@@ -528,7 +528,8 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
             );
           })}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
