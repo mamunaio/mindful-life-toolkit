@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckSquare, Wallet, Heart, BookOpen, Sparkles, ArrowRight, Droplets, Settings2, RotateCcw, GripVertical, TrendingUp, Calendar, Target, Zap } from "lucide-react";
+import { CheckSquare, Wallet, Heart, Sparkles, ArrowRight, Droplets, Settings2, RotateCcw, TrendingUp, Calendar, Target, Zap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useHealth, DEFAULT_HABITS } from "@/hooks/useHealth";
 import { useTransactions } from "@/hooks/useTransactions";
-import { useNotes } from "@/hooks/useNotes";
+
 import { useTasks } from "@/hooks/useTasks";
 import { useDashboardLayout } from "@/hooks/useDashboardLayout";
 
@@ -34,7 +34,7 @@ export default function Dashboard() {
   const { tasks } = useTasks();
   const { transactions } = useTransactions();
   const { today } = useHealth();
-  const { journal, checklists } = useNotes();
+  
   const { visibility, toggleWidget, resetLayout } = useDashboardLayout();
   const [isEditing, setIsEditing] = useState(false);
 
@@ -55,8 +55,6 @@ export default function Dashboard() {
   const habitsTotal = DEFAULT_HABITS.length;
   const habitPercent = habitsTotal > 0 ? (habitsCompleted / habitsTotal) * 100 : 0;
 
-  const totalChecklistItems = checklists.reduce((s, c) => s + c.items.length, 0);
-  const doneChecklistItems = checklists.reduce((s, c) => s + c.items.filter((i) => i.done).length, 0);
 
   const greeting = displayName ? `${getGreeting()}, ${displayName.split(" ")[0]}` : getGreeting();
   const balance = monthIncome - monthExpense;
@@ -112,7 +110,7 @@ export default function Dashboard() {
 
       {/* Quick Stats Row */}
       {visibility.stats !== false && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <Card className="card-elevated group cursor-pointer hover:shadow-md transition-all duration-200" onClick={() => navigate("/tasks")}>
             <CardContent className="p-4 flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
@@ -147,18 +145,6 @@ export default function Dashboard() {
               <div className="min-w-0">
                 <p className="text-2xl font-bold font-display text-card-foreground leading-none">{habitsCompleted}/{habitsTotal}</p>
                 <p className="text-[11px] text-muted-foreground mt-1 truncate">habits · {today.mood || "no mood"}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="card-elevated group cursor-pointer hover:shadow-md transition-all duration-200" onClick={() => navigate("/notes")}>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-accent/80 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                <BookOpen className="h-5 w-5 text-accent-foreground" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-2xl font-bold font-display text-card-foreground leading-none">{journal.length}</p>
-                <p className="text-[11px] text-muted-foreground mt-1 truncate">{doneChecklistItems}/{totalChecklistItems} checklist items</p>
               </div>
             </CardContent>
           </Card>
