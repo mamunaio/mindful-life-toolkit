@@ -12,7 +12,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 
 import { useTasks } from "@/hooks/useTasks";
 import { useDashboardLayout } from "@/hooks/useDashboardLayout";
-import DueDashboardWidget from "@/components/DueDashboardWidget";
+
 
 function getGreeting() {
   const hour = new Date().getHours();
