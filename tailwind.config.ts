@@ -71,8 +71,8 @@ export default {
         },
       },
       fontFamily: {
-        display: ['Space Grotesk', 'sans-serif'],
-        body: ['Inter', 'sans-serif'],
+        display: ['Plus Jakarta Sans', 'sans-serif'],
+        body: ['DM Sans', 'sans-serif'],
       },
       borderRadius: {
         lg: "var(--radius)",
