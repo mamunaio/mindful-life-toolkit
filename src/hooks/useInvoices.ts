@@ -98,7 +98,7 @@ export function useInvoices() {
         .select("*")
         .eq("user_id", uid!)
         .order("created_at", { ascending: false });
-      return (data as InvoiceRecord[] | null) ?? [];
+      return ((data as unknown) as InvoiceRecord[] | null) ?? [];
     },
   });
 
