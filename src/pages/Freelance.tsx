@@ -16,6 +16,8 @@ import InvoiceBuilder from "@/components/InvoiceBuilder";
 import FreelanceCharts from "@/components/FreelanceCharts";
 import TimeTrackingTab from "@/components/TimeTrackingTab";
 import ProposalsTab from "@/components/ProposalsTab";
+import ReportsTab from "@/components/ReportsTab";
+import { useTimeTracking } from "@/hooks/useTimeTracking";
 
 const STATUS_STYLES: Record<string, string> = {
   active: "bg-success/10 text-success",
