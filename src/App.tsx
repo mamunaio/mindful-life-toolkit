@@ -11,6 +11,7 @@ import Finance from "./pages/Finance";
 import Health from "./pages/Health";
 import Freelance from "./pages/Freelance";
 import Notes from "./pages/Notes";
+import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
@@ -42,6 +43,7 @@ const AppRoutes = () => (
       <Route path="/health" element={<Health />} />
       <Route path="/freelance" element={<Freelance />} />
       <Route path="/notes" element={<Notes />} />
+      <Route path="/settings" element={<Settings />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>

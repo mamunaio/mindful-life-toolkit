@@ -1,4 +1,4 @@
-import { LayoutDashboard, CheckSquare, Wallet, Heart, BookOpen, Briefcase, Sun, Moon, LogOut } from "lucide-react";
+import { LayoutDashboard, CheckSquare, Wallet, Heart, BookOpen, Briefcase, Settings, Sun, Moon, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useTheme } from "@/hooks/useTheme";
@@ -23,6 +23,7 @@ const items = [
   { title: "Freelance", url: "/freelance", icon: Briefcase },
   { title: "Health", url: "/health", icon: Heart },
   { title: "Notes", url: "/notes", icon: BookOpen },
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
