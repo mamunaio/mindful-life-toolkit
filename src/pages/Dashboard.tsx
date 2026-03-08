@@ -110,6 +110,19 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Due Collection */}
+      {visibility.dues !== false && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Users2 className="h-3.5 w-3.5 text-primary" />
+            </div>
+            <h2 className="text-lg font-bold font-display text-foreground">Due Collection</h2>
+          </div>
+          <DueDashboardWidget />
+        </div>
+      )}
+
       {/* Quick Stats Row */}
       {visibility.stats !== false && (
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
