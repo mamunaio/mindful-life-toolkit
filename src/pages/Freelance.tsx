@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { useFreelance } from "@/hooks/useFreelance";
 import { generateInvoicePDF } from "@/lib/generateInvoice";
+import FreelanceCharts from "@/components/FreelanceCharts";
 
 const STATUS_STYLES: Record<string, string> = {
   active: "bg-success/10 text-success",
