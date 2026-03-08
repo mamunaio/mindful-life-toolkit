@@ -12,11 +12,9 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useNotes } from "@/hooks/useNotes";
 import { useTasks } from "@/hooks/useTasks";
 import { useDashboardLayout } from "@/hooks/useDashboardLayout";
-import { Responsive, WidthProvider } from "react-grid-layout";
+import { ResponsiveGridLayout, useContainerWidth } from "react-grid-layout";
+import type { LayoutItem, Layout } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
-import "react-resizable/css/styles.css";
-
-const ResponsiveGridLayout = WidthProvider(Responsive);
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -45,6 +43,7 @@ export default function Dashboard() {
   const { journal, checklists } = useNotes();
   const { layouts, visibility, updateLayouts, toggleWidget, resetLayout } = useDashboardLayout();
   const [isEditing, setIsEditing] = useState(false);
+  const { width, containerRef, mounted } = useContainerWidth();
 
   const todoCount = tasks.filter((t) => t.column_id === "todo").length;
   const inProgressCount = tasks.filter((t) => t.column_id === "inprogress").length;
@@ -68,7 +67,7 @@ export default function Dashboard() {
 
   const greeting = displayName ? `${getGreeting()}, ${displayName.split(" ")[0]}` : getGreeting();
 
-  const visibleLayouts = layouts.filter((l) => visibility[l.i] !== false);
+  const visibleLayouts: Layout = layouts.filter((l) => visibility[l.i] !== false);
 
   const widgets: Record<string, React.ReactNode> = {
     priorities: (
@@ -251,38 +250,40 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className={isEditing ? "ring-2 ring-primary/20 rounded-xl p-2 -m-2 transition-all" : ""}>
-        <ResponsiveGridLayout
-          className="layout"
-          layouts={{ lg: visibleLayouts }}
-          breakpoints={{ lg: 996, md: 768, sm: 480, xs: 0 }}
-          cols={{ lg: 12, md: 8, sm: 4, xs: 2 }}
-          rowHeight={40}
-          isDraggable={isEditing}
-          isResizable={isEditing}
-          onLayoutChange={(newLayout) => {
-            if (isEditing && newLayout.length > 0) {
-              const merged = layouts.map((l) => {
-                const updated = newLayout.find((n) => n.i === l.i);
-                return updated ? { ...l, x: updated.x, y: updated.y, w: updated.w, h: updated.h } : l;
-              });
-              updateLayouts(merged);
-            }
-          }}
-          draggableHandle=".widget-drag-handle"
-          margin={[12, 12]}
-        >
-          {visibleLayouts.map((l) => (
-            <div key={l.i} className="relative group">
-              {isEditing && (
-                <div className="widget-drag-handle absolute top-2 right-2 z-10 cursor-grab active:cursor-grabbing p-1 rounded bg-muted/80 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
-                </div>
-              )}
-              {widgets[l.i]}
-            </div>
-          ))}
-        </ResponsiveGridLayout>
+      <div ref={containerRef} className={isEditing ? "ring-2 ring-primary/20 rounded-xl p-2 -m-2 transition-all" : ""}>
+        {mounted && (
+          <ResponsiveGridLayout
+            width={width}
+            className="layout"
+            layouts={{ lg: visibleLayouts }}
+            breakpoints={{ lg: 996, md: 768, sm: 480, xs: 0 }}
+            cols={{ lg: 12, md: 8, sm: 4, xs: 2 }}
+            rowHeight={40}
+            dragConfig={{ enabled: isEditing, handle: ".widget-drag-handle" }}
+            resizeConfig={{ enabled: isEditing }}
+            onLayoutChange={(newLayout: Layout) => {
+              if (isEditing && newLayout.length > 0) {
+                const merged = layouts.map((l) => {
+                  const updated = newLayout.find((n) => n.i === l.i);
+                  return updated ? { ...l, x: updated.x, y: updated.y, w: updated.w, h: updated.h } : l;
+                });
+                updateLayouts(merged);
+              }
+            }}
+            margin={[12, 12] as const}
+          >
+            {visibleLayouts.map((l: LayoutItem) => (
+              <div key={l.i} className="relative group">
+                {isEditing && (
+                  <div className="widget-drag-handle absolute top-2 right-2 z-10 cursor-grab active:cursor-grabbing p-1 rounded bg-muted/80 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                )}
+                {widgets[l.i]}
+              </div>
+            ))}
+          </ResponsiveGridLayout>
+        )}
       </div>
     </div>
   );
