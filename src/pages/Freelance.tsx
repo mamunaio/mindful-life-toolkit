@@ -69,39 +69,60 @@ export default function Freelance() {
       <FreelanceCharts payments={payments} expenses={expenses} clients={clients} />
 
       <Tabs defaultValue="clients" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="clients" className="gap-1 text-xs sm:text-sm"><Users className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Clients</span></TabsTrigger>
           <TabsTrigger value="projects" className="gap-1 text-xs sm:text-sm"><FolderKanban className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Projects</span></TabsTrigger>
           <TabsTrigger value="payments" className="gap-1 text-xs sm:text-sm"><CreditCard className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Payments</span></TabsTrigger>
+          <TabsTrigger value="invoices" className="gap-1 text-xs sm:text-sm"><FileText className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Invoices</span></TabsTrigger>
           <TabsTrigger value="withdrawals" className="gap-1 text-xs sm:text-sm"><ArrowDownToLine className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Withdraw</span></TabsTrigger>
           <TabsTrigger value="expenses" className="gap-1 text-xs sm:text-sm"><Receipt className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Expenses</span></TabsTrigger>
         </TabsList>
 
-        {/* CLIENTS */}
         <TabsContent value="clients">
           <ClientsTab clients={clients} addClient={addClient} deleteClient={deleteClient} />
         </TabsContent>
 
-        {/* PROJECTS */}
         <TabsContent value="projects">
           <ProjectsTab projects={projects} clients={clients} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} />
         </TabsContent>
 
-        {/* PAYMENTS */}
         <TabsContent value="payments">
-          <PaymentsTab payments={payments} clients={clients} projects={projects} addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment} />
+          <PaymentsTab
+            payments={payments} clients={clients} projects={projects}
+            addPayment={addPayment} updatePayment={updatePayment} deletePayment={deletePayment}
+            onCreateInvoice={(prefill: any) => { setInvoicePrefill(prefill); setInvoiceOpen(true); }}
+          />
         </TabsContent>
 
-        {/* WITHDRAWALS */}
+        <TabsContent value="invoices">
+          <InvoicesTab
+            invoices={invoices}
+            clients={clients}
+            settings={settings}
+            deleteInvoice={deleteInvoice}
+            onNewInvoice={() => { setInvoicePrefill(null); setInvoiceOpen(true); }}
+          />
+        </TabsContent>
+
         <TabsContent value="withdrawals">
           <WithdrawalsTab withdrawals={withdrawals} addWithdrawal={addWithdrawal} deleteWithdrawal={deleteWithdrawal} />
         </TabsContent>
 
-        {/* EXPENSES */}
         <TabsContent value="expenses">
           <ExpensesTab expenses={expenses} addExpense={addExpense} deleteExpense={deleteExpense} />
         </TabsContent>
       </Tabs>
+
+      <InvoiceBuilder
+        open={invoiceOpen}
+        onOpenChange={setInvoiceOpen}
+        settings={settings}
+        onSaveSettings={saveSettings}
+        onSaveInvoice={addInvoice}
+        clients={clients}
+        projects={projects}
+        prefill={invoicePrefill}
+      />
     </div>
   );
 }
