@@ -37,6 +37,11 @@ export default function Freelance() {
     expenses, addExpense, deleteExpense,
   } = useFreelance();
 
+  const { settings, saveSettings, invoices, addInvoice, updateInvoice, deleteInvoice } = useInvoices();
+
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [invoicePrefill, setInvoicePrefill] = useState<any>(null);
+
   // Stats
   const totalEarned = payments.filter((p) => p.status === "paid").reduce((s, p) => s + p.amount, 0);
   const totalPending = payments.filter((p) => p.status === "pending").reduce((s, p) => s + p.amount, 0);
