@@ -141,6 +141,30 @@ export default function Settings() {
     }
   };
 
+  const handleToggleNotification = async (key: keyof typeof notifications) => {
+    if (!user) return;
+    const updated = { ...notifications, [key]: !notifications[key] };
+    setNotifications(updated);
+    setSavingNotifications(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ notification_preferences: updated } as any)
+      .eq("user_id", user.id);
+    setSavingNotifications(false);
+    if (error) {
+      setNotifications(notifications); // revert
+      toast.error(error.message);
+    }
+  };
+
+  const notificationItems = [
+    { key: "task_reminders" as const, label: "Task Reminders", desc: "Get reminded about upcoming and overdue tasks", icon: CheckSquare },
+    { key: "health_checkins" as const, label: "Health Check-ins", desc: "Daily reminders to log mood, water, and habits", icon: Heart },
+    { key: "payment_alerts" as const, label: "Payment Alerts", desc: "Notifications for pending and overdue payments", icon: Wallet },
+    { key: "freelance_deadlines" as const, label: "Freelance Deadlines", desc: "Alerts when project deadlines are approaching", icon: Briefcase },
+    { key: "weekly_summary" as const, label: "Weekly Summary", desc: "A weekly overview of your productivity and finances", icon: BarChart3 },
+  ];
+
   const initials = (name || user?.email || "U").slice(0, 2).toUpperCase();
 
   return (
