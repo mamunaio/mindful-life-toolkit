@@ -333,6 +333,28 @@ function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, d
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-primary"
+                      title="Download Invoice"
+                      onClick={() => {
+                        const invNum = `INV-${p.date.replace(/-/g, "")}-${p.id.slice(0, 4).toUpperCase()}`;
+                        generateInvoicePDF({
+                          invoiceNumber: invNum,
+                          date: p.date,
+                          clientName: client?.name || "Client",
+                          clientEmail: client?.email,
+                          clientCompany: client?.company,
+                          projectName: project?.name,
+                          amount: Number(p.amount),
+                          description: p.description,
+                          status: p.status,
+                        });
+                      }}
+                    >
+                      <FileDown className="h-3 w-3" />
+                    </Button>
                     <Select value={p.status} onValueChange={(s) => updatePayment(p.id, { status: s })}>
                       <SelectTrigger className="h-7 w-[90px] text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
