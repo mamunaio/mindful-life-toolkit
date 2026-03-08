@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Camera, Loader2, User } from "lucide-react";
+import { Camera, Loader2, Bell, CheckSquare, Heart, Wallet, Briefcase, BarChart3 } from "lucide-react";
 
 export default function Settings() {
   const { user, displayName } = useAuth();
