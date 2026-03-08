@@ -54,7 +54,7 @@ export default function Freelance() {
   const netProfit = totalEarned - totalExpenses;
 
   return (
-    <div className="page-container space-y-8 animate-in fade-in duration-500">
+    <div className="page-container space-y-8">
       <div className="page-header">
         <h1 className="page-title">Freelance</h1>
         <p className="page-subtitle">Manage your clients, projects, and finances</p>

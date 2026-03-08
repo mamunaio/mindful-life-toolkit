@@ -180,7 +180,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="page-container space-y-8 animate-in fade-in duration-500">
+    <div className="page-container space-y-8">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium">

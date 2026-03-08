@@ -41,7 +41,7 @@ export default function Tasks() {
   };
 
   return (
-    <div className="page-container space-y-8 animate-in fade-in duration-500">
+    <div className="page-container space-y-8">
       <div className="flex flex-col lg:flex-row lg:items-start gap-6">
         <div className="flex-1 page-header">
           <h1 className="page-title">Tasks</h1>
