@@ -74,7 +74,7 @@ export default function Freelance() {
       <FreelanceCharts payments={payments} expenses={expenses} clients={clients} />
 
       <Tabs defaultValue="clients" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8">
+        <TabsList className="grid w-full grid-cols-5 sm:grid-cols-9">
           <TabsTrigger value="clients" className="gap-1 text-xs sm:text-sm"><Users className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Clients</span></TabsTrigger>
           <TabsTrigger value="proposals" className="gap-1 text-xs sm:text-sm"><FileCheck className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Proposals</span></TabsTrigger>
           <TabsTrigger value="projects" className="gap-1 text-xs sm:text-sm"><FolderKanban className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Projects</span></TabsTrigger>
@@ -83,6 +83,7 @@ export default function Freelance() {
           <TabsTrigger value="invoices" className="gap-1 text-xs sm:text-sm"><FileText className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Invoices</span></TabsTrigger>
           <TabsTrigger value="withdrawals" className="gap-1 text-xs sm:text-sm"><ArrowDownToLine className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Withdraw</span></TabsTrigger>
           <TabsTrigger value="expenses" className="gap-1 text-xs sm:text-sm"><Receipt className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Expenses</span></TabsTrigger>
+          <TabsTrigger value="reports" className="gap-1 text-xs sm:text-sm"><BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Reports</span></TabsTrigger>
         </TabsList>
 
         <TabsContent value="clients">
