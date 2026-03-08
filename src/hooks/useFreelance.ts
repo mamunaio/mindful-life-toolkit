@@ -19,6 +19,8 @@ export interface Project {
   status: string;
   budget: number | null;
   deadline: string | null;
+  completion_percent: number;
+  completion_notes: string | null;
   created_at: string;
 }
 
@@ -46,6 +48,13 @@ export interface FreelanceExpense {
   category: string;
   description: string | null;
   date: string;
+}
+
+export interface ProjectNote {
+  id: string;
+  project_id: string;
+  content: string;
+  created_at: string;
 }
 
 export function useFreelance() {
@@ -98,7 +107,7 @@ export function useFreelance() {
   });
 
   const updateProject = useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; status?: string }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; status?: string; name?: string; description?: string | null; budget?: number | null; deadline?: string | null; client_id?: string | null; completion_percent?: number; completion_notes?: string | null }) => {
       const { error } = await supabase.from("projects").update(updates).eq("id", id);
       if (error) throw error;
     },
@@ -111,6 +120,32 @@ export function useFreelance() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
+  });
+
+  // Project Notes
+  const { data: projectNotes = [] } = useQuery({
+    queryKey: ["project-notes", uid], enabled: !!uid,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("project_notes").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as ProjectNote[];
+    },
+  });
+
+  const addProjectNote = useMutation({
+    mutationFn: async (n: { project_id: string; content: string }) => {
+      const { error } = await supabase.from("project_notes").insert({ ...n, user_id: uid! });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project-notes"] }),
+  });
+
+  const deleteProjectNote = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("project_notes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["project-notes"] }),
   });
 
   // Payments
@@ -201,7 +236,10 @@ export function useFreelance() {
 
   return {
     clients, addClient: (c: Omit<Client, "id" | "created_at">) => addClient.mutate(c), deleteClient: (id: string) => deleteClient.mutate(id),
-    projects, addProject: (p: Omit<Project, "id" | "created_at">) => addProject.mutate(p), updateProject: (id: string, u: { status?: string }) => updateProject.mutate({ id, ...u }), deleteProject: (id: string) => deleteProject.mutate(id),
+    projects, addProject: (p: Omit<Project, "id" | "created_at">) => addProject.mutate(p),
+    updateProject: (id: string, u: { status?: string; name?: string; description?: string | null; budget?: number | null; deadline?: string | null; client_id?: string | null; completion_percent?: number; completion_notes?: string | null }) => updateProject.mutate({ id, ...u }),
+    deleteProject: (id: string) => deleteProject.mutate(id),
+    projectNotes, addProjectNote: (n: { project_id: string; content: string }) => addProjectNote.mutate(n), deleteProjectNote: (id: string) => deleteProjectNote.mutate(id),
     payments, addPayment: (p: Omit<Payment, "id">) => addPayment.mutate(p), updatePayment: (id: string, u: { status?: string }) => updatePayment.mutate({ id, ...u }), deletePayment: (id: string) => deletePayment.mutate(id),
     withdrawals, addWithdrawal: (w: Omit<Withdrawal, "id">) => addWithdrawal.mutate(w), deleteWithdrawal: (id: string) => deleteWithdrawal.mutate(id),
     expenses, addExpense: (e: Omit<FreelanceExpense, "id">) => addExpense.mutate(e), deleteExpense: (id: string) => deleteExpense.mutate(id),

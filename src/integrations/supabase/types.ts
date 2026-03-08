@@ -115,57 +115,6 @@ export type Database = {
         }
         Relationships: []
       }
-      client_reviews: {
-        Row: {
-          client_id: string | null
-          client_name: string
-          comment: string | null
-          created_at: string
-          id: string
-          project_id: string | null
-          project_name: string | null
-          rating: number
-          user_id: string
-        }
-        Insert: {
-          client_id?: string | null
-          client_name: string
-          comment?: string | null
-          created_at?: string
-          id?: string
-          project_id?: string | null
-          project_name?: string | null
-          rating?: number
-          user_id: string
-        }
-        Update: {
-          client_id?: string | null
-          client_name?: string
-          comment?: string | null
-          created_at?: string
-          id?: string
-          project_id?: string | null
-          project_name?: string | null
-          rating?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "client_reviews_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "client_reviews_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       clients: {
         Row: {
           company: string | null
@@ -583,10 +532,44 @@ export type Database = {
         }
         Relationships: []
       }
+      project_notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_notes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           budget: number | null
           client_id: string | null
+          completion_notes: string | null
+          completion_percent: number
           created_at: string
           deadline: string | null
           description: string | null
@@ -598,6 +581,8 @@ export type Database = {
         Insert: {
           budget?: number | null
           client_id?: string | null
+          completion_notes?: string | null
+          completion_percent?: number
           created_at?: string
           deadline?: string | null
           description?: string | null
@@ -609,6 +594,8 @@ export type Database = {
         Update: {
           budget?: number | null
           client_id?: string | null
+          completion_notes?: string | null
+          completion_percent?: number
           created_at?: string
           deadline?: string | null
           description?: string | null
