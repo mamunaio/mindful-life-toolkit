@@ -233,7 +233,9 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
   const [addOpen, setAddOpen] = useState(false);
   const [editProject, setEditProject] = useState<any>(null);
   const [detailProject, setDetailProject] = useState<any>(null);
-
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterClient, setFilterClient] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   // Add form
   const [name, setName] = useState("");
   const [clientId, setClientId] = useState("");
@@ -303,9 +305,34 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search projects..." className="h-8 w-48 text-xs" />
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="h-8 w-[120px] text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="paused">Paused</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterClient} onValueChange={setFilterClient}>
+          <SelectTrigger className="h-8 w-[140px] text-xs"><SelectValue placeholder="Client" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Clients</SelectItem>
+            {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {(filterStatus !== "all" || filterClient !== "all" || searchQuery) && (
+          <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={() => { setFilterStatus("all"); setFilterClient("all"); setSearchQuery(""); }}>
+            Clear filters
+          </Button>
+        )}
+        <div className="flex-1" />
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild><Button className="gap-1 h-9"><Plus className="h-4 w-4" /> Add Project</Button></DialogTrigger>
+          <DialogTrigger asChild><Button className="gap-1 h-8 text-xs"><Plus className="h-3.5 w-3.5" /> Add Project</Button></DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle className="font-display">New Project</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
@@ -433,11 +460,23 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
         </DialogContent>
       </Dialog>
 
-      {projects.length === 0 ? (
-        <EmptyState icon={FolderKanban} text="No projects yet. Start by adding one!" />
-      ) : (
+      {(() => {
+        const filtered = projects.filter((p: any) => {
+          if (filterStatus !== "all" && p.status !== filterStatus) return false;
+          if (filterClient !== "all" && p.client_id !== filterClient) return false;
+          if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+          return true;
+        });
+        if (projects.length === 0) return <EmptyState icon={FolderKanban} text="No projects yet. Start by adding one!" />;
+        if (filtered.length === 0) return (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <FolderKanban className="h-8 w-8 mb-2 opacity-20" />
+            <p className="text-sm">No projects match your filters</p>
+          </div>
+        );
+        return (
         <div className="space-y-2">
-          {projects.map((p: any) => {
+          {filtered.map((p: any) => {
             const client = clients.find((c: any) => c.id === p.client_id);
             const noteCount = projectNotes.filter((n: any) => n.project_id === p.id).length;
             return (
@@ -489,7 +528,8 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
             );
           })}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
