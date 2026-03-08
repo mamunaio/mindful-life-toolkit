@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { useTransactions, Transaction } from "@/hooks/useTransactions";
+import DueCollection from "@/components/DueCollection";
 
 const EXPENSE_CATEGORIES = ["Food", "Bills", "Transport", "Fun", "Shopping", "Health", "Education", "Other"];
 const INCOME_CATEGORIES = ["Salary", "Freelance", "Investment", "Gift", "Other"];
@@ -168,6 +169,9 @@ export default function Finance() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Due Collection */}
+      <DueCollection />
 
       <Card className="card-elevated">
         <CardHeader><CardTitle className="font-display text-sm">Recent Transactions</CardTitle></CardHeader>
