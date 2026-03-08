@@ -20,6 +20,7 @@ const items = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Tasks", url: "/tasks", icon: CheckSquare },
   { title: "Finance", url: "/finance", icon: Wallet },
+  { title: "Freelance", url: "/freelance", icon: Briefcase },
   { title: "Health", url: "/health", icon: Heart },
   { title: "Notes", url: "/notes", icon: BookOpen },
 ];
