@@ -88,6 +88,10 @@ export default function Freelance() {
           <ProjectsTab projects={projects} clients={clients} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} />
         </TabsContent>
 
+        <TabsContent value="time">
+          <TimeTrackingTab clients={clients} projects={projects} />
+        </TabsContent>
+
         <TabsContent value="payments">
           <PaymentsTab
             payments={payments} clients={clients} projects={projects}
