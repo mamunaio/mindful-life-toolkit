@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useFreelance } from "@/hooks/useFreelance";
+import { generateInvoicePDF } from "@/lib/generateInvoice";
 
 const STATUS_STYLES: Record<string, string> = {
   active: "bg-success/10 text-success",
