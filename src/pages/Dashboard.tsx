@@ -34,7 +34,7 @@ export default function Dashboard() {
   const { tasks } = useTasks();
   const { transactions } = useTransactions();
   const { today } = useHealth();
-  const { journal, checklists } = useNotes();
+  
   const { visibility, toggleWidget, resetLayout } = useDashboardLayout();
   const [isEditing, setIsEditing] = useState(false);
 
