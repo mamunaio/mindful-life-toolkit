@@ -58,6 +58,9 @@ export default function Freelance() {
         <StatCard icon={DollarSign} label="Net Profit" value={`$${netProfit.toFixed(0)}`} color="bg-secondary" textColor={netProfit >= 0 ? "text-success" : "text-destructive"} />
       </div>
 
+      {/* Charts */}
+      <FreelanceCharts payments={payments} expenses={expenses} clients={clients} />
+
       <Tabs defaultValue="clients" className="space-y-4">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="clients" className="gap-1 text-xs sm:text-sm"><Users className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Clients</span></TabsTrigger>
