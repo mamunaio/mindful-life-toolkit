@@ -1,7 +1,8 @@
-import { LayoutDashboard, CheckSquare, Wallet, Heart, BookOpen, Sun, Moon } from "lucide-react";
+import { LayoutDashboard, CheckSquare, Wallet, Heart, BookOpen, Sun, Moon, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useTheme } from "@/hooks/useTheme";
+import { useAuth } from "@/hooks/useAuth";
 
 import {
   Sidebar,
@@ -28,15 +29,14 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
+  const { signOut, displayName } = useAuth();
 
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
         <div className="p-4 pb-2">
           {!collapsed ? (
-            <h1 className="text-xl font-bold font-display text-primary tracking-tight">
-              LifeHub
-            </h1>
+            <h1 className="text-xl font-bold font-display text-primary tracking-tight">LifeHub</h1>
           ) : (
             <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-sm">L</span>
@@ -68,17 +68,22 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
+        {!collapsed && displayName && (
+          <div className="px-3 pb-1">
+            <p className="text-xs text-muted-foreground truncate">{displayName}</p>
+          </div>
+        )}
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={toggleTheme}>
-              {theme === "dark" ? (
-                <Sun className="h-4 w-4 mr-2" />
-              ) : (
-                <Moon className="h-4 w-4 mr-2" />
-              )}
-              {!collapsed && (
-                <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
-              )}
+              {theme === "dark" ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
+              {!collapsed && <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={signOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              {!collapsed && <span>Sign Out</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
