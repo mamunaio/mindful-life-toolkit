@@ -460,11 +460,23 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
         </DialogContent>
       </Dialog>
 
-      {projects.length === 0 ? (
-        <EmptyState icon={FolderKanban} text="No projects yet. Start by adding one!" />
-      ) : (
+      {(() => {
+        const filtered = projects.filter((p: any) => {
+          if (filterStatus !== "all" && p.status !== filterStatus) return false;
+          if (filterClient !== "all" && p.client_id !== filterClient) return false;
+          if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+          return true;
+        });
+        if (projects.length === 0) return <EmptyState icon={FolderKanban} text="No projects yet. Start by adding one!" />;
+        if (filtered.length === 0) return (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <FolderKanban className="h-8 w-8 mb-2 opacity-20" />
+            <p className="text-sm">No projects match your filters</p>
+          </div>
+        );
+        return (
         <div className="space-y-2">
-          {projects.map((p: any) => {
+          {filtered.map((p: any) => {
             const client = clients.find((c: any) => c.id === p.client_id);
             const noteCount = projectNotes.filter((n: any) => n.project_id === p.id).length;
             return (
