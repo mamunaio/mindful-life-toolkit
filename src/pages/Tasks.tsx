@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useTasks } from "@/hooks/useTasks";
+import PomodoroTimer from "@/components/PomodoroTimer";
 
 const COLUMNS = [
   { id: "todo" as const, title: "To Do", color: "bg-info/10 text-info" },
