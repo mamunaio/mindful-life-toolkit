@@ -20,6 +20,16 @@ export default function Notes() {
   const [newListName, setNewListName] = useState("");
   const [addingItemTo, setAddingItemTo] = useState<string | null>(null);
   const [newItemText, setNewItemText] = useState("");
+  const [localBrainDump, setLocalBrainDump] = useState(brainDump);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => { setLocalBrainDump(brainDump); }, [brainDump]);
+
+  const handleBrainDumpChange = (val: string) => {
+    setLocalBrainDump(val);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setBrainDump(val), 800);
+  };
 
   const handleAddEntry = () => {
     if (!journalDraft.trim()) return;
