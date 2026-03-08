@@ -15,6 +15,7 @@ import { generateInvoicePDF } from "@/lib/generateInvoice";
 import InvoiceBuilder from "@/components/InvoiceBuilder";
 import FreelanceCharts from "@/components/FreelanceCharts";
 import TimeTrackingTab from "@/components/TimeTrackingTab";
+import ProposalsTab from "@/components/ProposalsTab";
 
 const STATUS_STYLES: Record<string, string> = {
   active: "bg-success/10 text-success",
