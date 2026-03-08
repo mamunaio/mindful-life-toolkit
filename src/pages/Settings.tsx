@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Camera, Loader2, User } from "lucide-react";
+import { Camera, Loader2, Bell, CheckSquare, Heart, Wallet, Briefcase, BarChart3 } from "lucide-react";
 
 export default function Settings() {
   const { user, displayName } = useAuth();
@@ -22,6 +23,14 @@ export default function Settings() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [notifications, setNotifications] = useState({
+    task_reminders: true,
+    health_checkins: true,
+    payment_alerts: true,
+    freelance_deadlines: true,
+    weekly_summary: true,
+  });
+  const [savingNotifications, setSavingNotifications] = useState(false);
 
   useEffect(() => {
     setName(displayName ?? "");
@@ -32,11 +41,14 @@ export default function Settings() {
     if (!user) return;
     supabase
       .from("profiles")
-      .select("avatar_url")
+      .select("avatar_url, notification_preferences")
       .eq("user_id", user.id)
       .single()
       .then(({ data }) => {
         if (data?.avatar_url) setAvatarUrl(data.avatar_url);
+        if (data?.notification_preferences) {
+          setNotifications(data.notification_preferences as typeof notifications);
+        }
       });
   }, [user]);
 
@@ -128,6 +140,30 @@ export default function Settings() {
       setConfirmPassword("");
     }
   };
+
+  const handleToggleNotification = async (key: keyof typeof notifications) => {
+    if (!user) return;
+    const updated = { ...notifications, [key]: !notifications[key] };
+    setNotifications(updated);
+    setSavingNotifications(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ notification_preferences: updated } as any)
+      .eq("user_id", user.id);
+    setSavingNotifications(false);
+    if (error) {
+      setNotifications(notifications); // revert
+      toast.error(error.message);
+    }
+  };
+
+  const notificationItems = [
+    { key: "task_reminders" as const, label: "Task Reminders", desc: "Get reminded about upcoming and overdue tasks", icon: CheckSquare },
+    { key: "health_checkins" as const, label: "Health Check-ins", desc: "Daily reminders to log mood, water, and habits", icon: Heart },
+    { key: "payment_alerts" as const, label: "Payment Alerts", desc: "Notifications for pending and overdue payments", icon: Wallet },
+    { key: "freelance_deadlines" as const, label: "Freelance Deadlines", desc: "Alerts when project deadlines are approaching", icon: Briefcase },
+    { key: "weekly_summary" as const, label: "Weekly Summary", desc: "A weekly overview of your productivity and finances", icon: BarChart3 },
+  ];
 
   const initials = (name || user?.email || "U").slice(0, 2).toUpperCase();
 
@@ -249,6 +285,37 @@ export default function Settings() {
               Change Password
             </Button>
           </div>
+        </CardContent>
+      </Card>
+      {/* Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            Notifications
+          </CardTitle>
+          <CardDescription>Choose which notifications you'd like to receive</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          {notificationItems.map((item, i) => (
+            <div key={item.key}>
+              <div className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-3">
+                  <item.icon className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={notifications[item.key]}
+                  onCheckedChange={() => handleToggleNotification(item.key)}
+                  disabled={savingNotifications}
+                />
+              </div>
+              {i < notificationItems.length - 1 && <Separator />}
+            </div>
+          ))}
         </CardContent>
       </Card>
     </div>
