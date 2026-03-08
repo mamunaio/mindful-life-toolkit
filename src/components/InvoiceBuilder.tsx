@@ -42,7 +42,7 @@ export default function InvoiceBuilder({
   const [tab, setTab] = useState<"invoice" | "settings">("invoice");
 
   // Settings state
-  const [bizName, setBizName] = useState(settings.business_name || "");
+  const [bizName, setBizName] = useState(settings.business_name || "Injaazh PLC");
   const [bizEmail, setBizEmail] = useState(settings.business_email || "");
   const [bizAddress, setBizAddress] = useState(settings.business_address || "");
   const [bizPhone, setBizPhone] = useState(settings.business_phone || "");
@@ -52,7 +52,7 @@ export default function InvoiceBuilder({
   const [defaultCurrency, setDefaultCurrency] = useState(settings.default_currency || "USD");
 
   useEffect(() => {
-    setBizName(settings.business_name || "");
+    setBizName(settings.business_name || "Injaazh PLC");
     setBizEmail(settings.business_email || "");
     setBizAddress(settings.business_address || "");
     setBizPhone(settings.business_phone || "");
@@ -117,7 +117,7 @@ export default function InvoiceBuilder({
   const taxAmount = afterDiscount * (tax / 100);
   const total = afterDiscount + taxAmount;
 
-  const invNumber = `INV-${String(settings.next_invoice_number || 1).padStart(4, "0")}`;
+  const invNumber = `INVNJ-${String(settings.next_invoice_number || 1).padStart(4, "0")}`;
 
   const buildInvoiceData = (): InvoiceData => ({
     invoiceNumber: invNumber,
