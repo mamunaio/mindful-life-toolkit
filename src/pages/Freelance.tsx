@@ -280,6 +280,7 @@ export default function Freelance() {
           <ProjectsTab
             projects={projects} clients={clients}
             projectNotes={projectNotes}
+            payments={payments} invoices={invoices}
             addProject={addProject} updateProject={updateProject}
             deleteProject={deleteProject}
             onStatusChange={handleProjectStatusChange}
