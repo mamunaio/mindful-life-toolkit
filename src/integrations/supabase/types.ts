@@ -386,6 +386,39 @@ export type Database = {
         }
         Relationships: []
       }
+      notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_pinned: boolean
+          tags: Json
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          tags?: Json
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          tags?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
