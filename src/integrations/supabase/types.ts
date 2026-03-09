@@ -707,6 +707,36 @@ export type Database = {
           },
         ]
       }
+      savings_goals: {
+        Row: {
+          created_at: string
+          current_amount: number
+          icon: string | null
+          id: string
+          name: string
+          target_amount: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_amount?: number
+          icon?: string | null
+          id?: string
+          name: string
+          target_amount?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_amount?: number
+          icon?: string | null
+          id?: string
+          name?: string
+          target_amount?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       schedule_events: {
         Row: {
           color: string
