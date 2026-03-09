@@ -275,7 +275,7 @@ export default function Freelance() {
             onCreateInvoice={(prefill: any) => { setInvoicePrefill(prefill); setInvoiceOpen(true); }}
           />
         </TabsContent>
-        <TabsContent value="proposals"><ProposalsTab clients={clients} projects={projects} addProject={addProject} /></TabsContent>
+        <TabsContent value="proposals"><ProposalsTab clients={clients} projects={projects} addProject={(p: any) => addProject(p)} /></TabsContent>
         <TabsContent value="projects">
           <ProjectsTab
             projects={projects} clients={clients}
