@@ -102,6 +102,7 @@ export function useFreelance() {
         ...p,
         project_links: Array.isArray(p.project_links) ? p.project_links : [],
       }));
+    },
   });
 
   const addProject = useMutation({
