@@ -573,9 +573,13 @@ export type Database = {
           created_at: string
           deadline: string | null
           description: string | null
+          estimated_hours: number | null
           id: string
           name: string
+          priority: string
+          project_links: Json
           status: string
+          time_spent: number
           user_id: string
         }
         Insert: {
@@ -586,9 +590,13 @@ export type Database = {
           created_at?: string
           deadline?: string | null
           description?: string | null
+          estimated_hours?: number | null
           id?: string
           name: string
+          priority?: string
+          project_links?: Json
           status?: string
+          time_spent?: number
           user_id: string
         }
         Update: {
@@ -599,9 +607,13 @@ export type Database = {
           created_at?: string
           deadline?: string | null
           description?: string | null
+          estimated_hours?: number | null
           id?: string
           name?: string
+          priority?: string
+          project_links?: Json
           status?: string
+          time_spent?: number
           user_id?: string
         }
         Relationships: [
