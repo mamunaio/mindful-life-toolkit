@@ -111,7 +111,7 @@ export function useFreelance() {
   });
 
   const updateProject = useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; status?: string; name?: string; description?: string | null; budget?: number | null; deadline?: string | null; client_id?: string | null; completion_percent?: number; completion_notes?: string | null }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; status?: string; name?: string; description?: string | null; budget?: number | null; deadline?: string | null; client_id?: string | null; completion_percent?: number; completion_notes?: string | null; priority?: string; project_links?: any; estimated_hours?: number | null; time_spent?: number }) => {
       const { error } = await supabase.from("projects").update(updates).eq("id", id);
       if (error) throw error;
     },
