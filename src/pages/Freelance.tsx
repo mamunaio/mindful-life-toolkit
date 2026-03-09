@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, DollarSign, CheckCircle, Clock, AlertCircle, FileDown, FileText, Timer, FileCheck, BarChart3, Pencil, MessageSquare, X, StickyNote } from "lucide-react";
+import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, DollarSign, CheckCircle, Clock, AlertCircle, FileDown, FileText, Timer, FileCheck, BarChart3, Pencil, MessageSquare, X, StickyNote, Target, AlertTriangle, Zap, PieChart, FileText as InvoiceIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { useFreelance } from "@/hooks/useFreelance";
 import { useInvoices } from "@/hooks/useInvoices";
+import { useProposals } from "@/hooks/useProposals";
 import { useTransactions } from "@/hooks/useTransactions";
 import { generateInvoicePDF } from "@/lib/generateInvoice";
 import InvoiceBuilder from "@/components/InvoiceBuilder";
@@ -36,6 +37,8 @@ const STATUS_STYLES: Record<string, string> = {
 const EXPENSE_CATEGORIES = ["software", "hardware", "hosting", "marketing", "education", "travel", "office", "other"];
 const WITHDRAWAL_METHODS = ["bank_transfer", "paypal", "wise", "crypto", "cash", "other"];
 
+const MONTHLY_TARGET = 3000; // Default monthly revenue target
+
 export default function Freelance() {
   const {
     clients, addClient, deleteClient,
@@ -47,6 +50,7 @@ export default function Freelance() {
   } = useFreelance();
 
   const { settings, saveSettings, invoices, addInvoice, updateInvoice, deleteInvoice } = useInvoices();
+  const { proposals } = useProposals();
   const { entries: timeEntries } = useTimeTracking();
   const { addTransaction } = useTransactions();
 
@@ -58,6 +62,51 @@ export default function Freelance() {
   const totalWithdrawn = withdrawals.reduce((s, w) => s + w.amount, 0);
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
   const netProfit = totalEarned - totalExpenses;
+
+  // Monthly revenue (current month paid payments)
+  const monthlyRevenue = useMemo(() => {
+    const now = new Date();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    return payments
+      .filter((p) => {
+        if (p.status !== "paid") return false;
+        const d = new Date(p.date);
+        return d.getMonth() === month && d.getFullYear() === year;
+      })
+      .reduce((s, p) => s + p.amount, 0);
+  }, [payments]);
+
+  // Action items / alerts
+  const actionItems = useMemo(() => {
+    const items: { label: string; count: number; color: string; icon: any }[] = [];
+
+    const overdueInvoices = invoices.filter((i: any) => i.status !== "paid" && i.due_date && new Date(i.due_date) < new Date()).length;
+    if (overdueInvoices > 0) items.push({ label: "Overdue Invoices", count: overdueInvoices, color: "text-destructive", icon: AlertTriangle });
+
+    const unbilledEntries = timeEntries.filter((e: any) => !e.is_running && e.duration_minutes && e.duration_minutes > 0).length;
+    const billedHours = Math.round(timeEntries.filter((e: any) => e.duration_minutes).reduce((s: number, e: any) => s + (e.duration_minutes || 0), 0) / 60);
+    if (billedHours > 0) items.push({ label: "Unbilled Hours", count: billedHours, color: "text-warning", icon: Clock });
+
+    const pendingProposals = proposals.filter((p) => p.status === "sent" || p.status === "draft").length;
+    if (pendingProposals > 0) items.push({ label: "Proposals Pending", count: pendingProposals, color: "text-info", icon: FileCheck });
+
+    const pendingPaymentCount = payments.filter((p) => p.status === "pending").length;
+    if (pendingPaymentCount > 0) items.push({ label: "Pending Payments", count: pendingPaymentCount, color: "text-warning", icon: CreditCard });
+
+    return items;
+  }, [invoices, timeEntries, proposals, payments]);
+
+  // Proposal pipeline stats
+  const pipelineStats = useMemo(() => {
+    const sent = proposals.filter((p) => p.status === "sent").length;
+    const draft = proposals.filter((p) => p.status === "draft").length;
+    const accepted = proposals.filter((p) => p.status === "accepted").length;
+    const rejected = proposals.filter((p) => p.status === "rejected").length;
+    const total = accepted + rejected;
+    const winRate = total > 0 ? Math.round((accepted / total) * 100) : 0;
+    return { activeBids: sent + draft, accepted, rejected, winRate, total: proposals.length };
+  }, [proposals]);
 
   const handlePaymentStatusChange = (paymentId: string, newStatus: string, payment: any) => {
     const oldStatus = payment.status;
@@ -98,13 +147,104 @@ export default function Freelance() {
     }
   };
 
+  const revenuePercent = Math.min((monthlyRevenue / MONTHLY_TARGET) * 100, 100);
+
   return (
-    <div className="page-container space-y-8">
+    <div className="page-container space-y-6">
       <div className="page-header">
-        <h1 className="page-title">Freelance</h1>
-        <p className="page-subtitle">Manage your clients, projects, and finances</p>
+        <h1 className="page-title">Freelance CRM</h1>
+        <p className="page-subtitle">Manage clients, projects, pipeline & finances like a pro</p>
       </div>
 
+      {/* Monthly Revenue Target */}
+      <Card className="card-elevated border-primary/20">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                <Target className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Monthly Revenue Target</p>
+                <p className="text-lg font-bold font-display text-foreground">
+                  ${monthlyRevenue.toFixed(0)} <span className="text-sm font-normal text-muted-foreground">/ ${MONTHLY_TARGET.toLocaleString()}</span>
+                </p>
+              </div>
+            </div>
+            <span className={`text-sm font-bold ${revenuePercent >= 100 ? "text-success" : revenuePercent >= 50 ? "text-warning" : "text-muted-foreground"}`}>
+              {revenuePercent.toFixed(0)}%
+            </span>
+          </div>
+          <Progress value={revenuePercent} className="h-2.5" />
+          {revenuePercent >= 100 && (
+            <p className="text-[10px] text-success font-medium mt-1.5">🎉 Monthly target achieved!</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Action Items & Pipeline Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Action Items */}
+        <Card className="card-elevated">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="h-4 w-4 text-warning" />
+              <h3 className="text-sm font-semibold font-display">Action Items</h3>
+            </div>
+            {actionItems.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">✓ All clear — no pending actions!</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {actionItems.map((item, i) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/30 border border-border/50">
+                      <Icon className={`h-3.5 w-3.5 ${item.color}`} />
+                      <span className={`text-xs font-bold ${item.color}`}>{item.count}</span>
+                      <span className="text-xs text-muted-foreground">{item.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Proposal Pipeline & Win Rate */}
+        <Card className="card-elevated">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <PieChart className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold font-display">Proposal Pipeline</h3>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex-1 grid grid-cols-3 gap-3">
+                <div className="text-center">
+                  <p className="text-lg font-bold font-display text-foreground">{pipelineStats.activeBids}</p>
+                  <p className="text-[10px] text-muted-foreground">Active Bids</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-bold font-display text-success">{pipelineStats.accepted}</p>
+                  <p className="text-[10px] text-muted-foreground">Won</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-lg font-bold font-display text-destructive">{pipelineStats.rejected}</p>
+                  <p className="text-[10px] text-muted-foreground">Lost</p>
+                </div>
+              </div>
+              <div className="w-px h-12 bg-border/50" />
+              <div className="text-center px-3">
+                <p className={`text-2xl font-bold font-display ${pipelineStats.winRate >= 50 ? "text-success" : pipelineStats.winRate > 0 ? "text-warning" : "text-muted-foreground"}`}>
+                  {pipelineStats.winRate}%
+                </p>
+                <p className="text-[10px] text-muted-foreground">Win Rate</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <StatCard icon={TrendingUp} label="Earned" value={`$${totalEarned.toFixed(0)}`} gradient="gradient-primary" />
         <StatCard icon={Clock} label="Pending" value={`$${totalPending.toFixed(0)}`} gradient="gradient-warm" />
@@ -128,7 +268,13 @@ export default function Freelance() {
           <TabsTrigger value="reports" className="gap-1 text-xs sm:text-sm"><BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" /> <span className="hidden sm:inline">Reports</span></TabsTrigger>
         </TabsList>
 
-        <TabsContent value="clients"><ClientsTab clients={clients} addClient={addClient} deleteClient={deleteClient} /></TabsContent>
+        <TabsContent value="clients">
+          <ClientsTab
+            clients={clients} addClient={addClient} deleteClient={deleteClient}
+            payments={payments} projects={projects}
+            onCreateInvoice={(prefill: any) => { setInvoicePrefill(prefill); setInvoiceOpen(true); }}
+          />
+        </TabsContent>
         <TabsContent value="proposals"><ProposalsTab clients={clients} projects={projects} addProject={addProject} /></TabsContent>
         <TabsContent value="projects">
           <ProjectsTab
@@ -172,8 +318,8 @@ function StatCard({ icon: Icon, label, value, gradient, textColor }: { icon: any
   );
 }
 
-/* ==================== CLIENTS TAB ==================== */
-function ClientsTab({ clients, addClient, deleteClient }: any) {
+/* ==================== SUPERCHARGED CLIENTS TAB ==================== */
+function ClientsTab({ clients, addClient, deleteClient, payments, projects, onCreateInvoice }: any) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -184,6 +330,23 @@ function ClientsTab({ clients, addClient, deleteClient }: any) {
     if (!name.trim()) return;
     addClient({ name: name.trim(), email: email || null, company: company || null, notes: notes || null });
     setName(""); setEmail(""); setCompany(""); setNotes(""); setOpen(false);
+  };
+
+  const getClientStatus = (clientId: string) => {
+    const clientProjects = projects.filter((p: any) => p.client_id === clientId);
+    if (clientProjects.length === 0) return "new";
+    const hasActive = clientProjects.some((p: any) => p.status === "active");
+    if (hasActive) return "active";
+    const hasPaused = clientProjects.some((p: any) => p.status === "paused");
+    if (hasPaused) return "paused";
+    return "completed";
+  };
+
+  const CLIENT_STATUS_STYLES: Record<string, string> = {
+    active: "bg-success/10 text-success border-success/20",
+    completed: "bg-primary/10 text-primary border-primary/20",
+    paused: "bg-warning/10 text-warning border-warning/20",
+    new: "bg-muted text-muted-foreground border-border",
   };
 
   return (
@@ -207,21 +370,74 @@ function ClientsTab({ clients, addClient, deleteClient }: any) {
         <EmptyState icon={Users} text="No clients yet. Add your first client!" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {clients.map((c: any) => (
-            <Card key={c.id} className="group card-elevated">
-              <CardContent className="p-4 flex justify-between items-start">
-                <div>
-                  <p className="font-semibold text-card-foreground text-sm">{c.name}</p>
-                  {c.company && <p className="text-[11px] text-muted-foreground">{c.company}</p>}
-                  {c.email && <p className="text-[11px] text-muted-foreground">{c.email}</p>}
-                  {c.notes && <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{c.notes}</p>}
-                </div>
-                <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => deleteClient(c.id)}>
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+          {clients.map((c: any) => {
+            const status = getClientStatus(c.id);
+            const clientPayments = payments.filter((p: any) => p.client_id === c.id);
+            const totalBilled = clientPayments.filter((p: any) => p.status === "paid").reduce((s: number, p: any) => s + p.amount, 0);
+            const pendingDues = clientPayments.filter((p: any) => p.status === "pending" || p.status === "overdue").reduce((s: number, p: any) => s + p.amount, 0);
+            const activeProjects = projects.filter((p: any) => p.client_id === c.id && p.status === "active").length;
+
+            return (
+              <Card key={c.id} className="group card-elevated hover:shadow-md transition-all">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-card-foreground text-sm">{c.name}</p>
+                        <Badge className={`text-[9px] border capitalize ${CLIENT_STATUS_STYLES[status]}`}>{status}</Badge>
+                      </div>
+                      {c.company && <p className="text-[11px] text-muted-foreground">{c.company}</p>}
+                      {c.email && <p className="text-[11px] text-muted-foreground">{c.email}</p>}
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive shrink-0" onClick={() => deleteClient(c.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+
+                  {/* Financial Stats */}
+                  <div className="flex items-center gap-3 text-xs">
+                    <div className="flex-1 p-2 rounded-md bg-success/5 border border-success/10">
+                      <p className="text-[10px] text-muted-foreground">Total Billed</p>
+                      <p className="font-bold text-success">${totalBilled.toFixed(0)}</p>
+                    </div>
+                    <div className="flex-1 p-2 rounded-md bg-warning/5 border border-warning/10">
+                      <p className="text-[10px] text-muted-foreground">Pending</p>
+                      <p className={`font-bold ${pendingDues > 0 ? "text-warning" : "text-muted-foreground"}`}>${pendingDues.toFixed(0)}</p>
+                    </div>
+                    <div className="flex-1 p-2 rounded-md bg-primary/5 border border-primary/10">
+                      <p className="text-[10px] text-muted-foreground">Projects</p>
+                      <p className="font-bold text-primary">{activeProjects}</p>
+                    </div>
+                  </div>
+
+                  {c.notes && <p className="text-[11px] text-muted-foreground line-clamp-1">{c.notes}</p>}
+
+                  {/* Quick Actions */}
+                  <div className="flex gap-1.5 pt-1 border-t border-border/30">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[10px] gap-1 flex-1"
+                      onClick={() => onCreateInvoice({ clientId: c.id })}
+                    >
+                      <FileText className="h-3 w-3" /> Create Invoice
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[10px] gap-1 flex-1"
+                      onClick={() => {
+                        // Navigate to time tab - use a toast hint
+                        toast.info("Switch to the Time tab to log hours for this client");
+                      }}
+                    >
+                      <Timer className="h-3 w-3" /> Log Time
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
@@ -236,14 +452,11 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterClient, setFilterClient] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  // Add form
   const [name, setName] = useState("");
   const [clientId, setClientId] = useState("");
   const [description, setDescription] = useState("");
   const [budget, setBudget] = useState("");
   const [deadline, setDeadline] = useState("");
-
-  // Edit form
   const [editName, setEditName] = useState("");
   const [editClientId, setEditClientId] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -251,8 +464,6 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
   const [editDeadline, setEditDeadline] = useState("");
   const [editPercent, setEditPercent] = useState(0);
   const [editCompletionNotes, setEditCompletionNotes] = useState("");
-
-  // Note input
   const [noteText, setNoteText] = useState("");
 
   const handleAdd = () => {
@@ -276,22 +487,12 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
     if (!editProject || !editName.trim()) return;
     const newStatus = editPercent === 100 ? "completed" : editProject.status === "completed" && editPercent < 100 ? "active" : editProject.status;
     const wasCompleted = editProject.status !== "completed" && newStatus === "completed";
-
     updateProject(editProject.id, {
-      name: editName.trim(),
-      client_id: editClientId || null,
-      description: editDescription || null,
-      budget: editBudget ? parseFloat(editBudget) : null,
-      deadline: editDeadline || null,
-      completion_percent: editPercent,
-      completion_notes: editCompletionNotes || null,
-      status: newStatus,
+      name: editName.trim(), client_id: editClientId || null, description: editDescription || null,
+      budget: editBudget ? parseFloat(editBudget) : null, deadline: editDeadline || null,
+      completion_percent: editPercent, completion_notes: editCompletionNotes || null, status: newStatus,
     });
-
-    if (wasCompleted) {
-      onStatusChange(editProject.id, "completed");
-    }
-
+    if (wasCompleted) onStatusChange(editProject.id, "completed");
     toast.success("Project updated!");
     setEditProject(null);
   };
@@ -305,7 +506,6 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
         <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search projects..." className="h-8 w-48 text-xs" />
         <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -374,8 +574,6 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
               <div className="space-y-1"><Label className="text-xs font-medium">Deadline</Label><Input type="date" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} /></div>
             </div>
             <div className="space-y-1"><Label className="text-xs font-medium">Description</Label><Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Project details..." rows={2} /></div>
-
-            {/* Completion Progress */}
             <div className="space-y-2 p-3 rounded-lg bg-muted/20 border border-border/30">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-medium">Completion Progress</Label>
@@ -383,17 +581,12 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
               </div>
               <Slider value={[editPercent]} onValueChange={(v) => setEditPercent(v[0])} max={100} step={5} className="w-full" />
               <Progress value={editPercent} className="h-2" />
-              {editPercent === 100 && (
-                <p className="text-[10px] text-success font-medium">✓ Status will be set to "Completed" on save</p>
-              )}
+              {editPercent === 100 && <p className="text-[10px] text-success font-medium">✓ Status will be set to "Completed" on save</p>}
             </div>
-
-            {/* Completion Notes */}
             <div className="space-y-1">
               <Label className="text-xs font-medium">Completion / Summary Notes</Label>
               <Textarea value={editCompletionNotes} onChange={(e) => setEditCompletionNotes(e.target.value)} placeholder="Final notes, deliverables, client feedback..." rows={3} />
             </div>
-
             <Button className="w-full" onClick={handleSaveEdit} disabled={!editName.trim()}>Save Changes</Button>
           </div>
         </DialogContent>
@@ -408,21 +601,17 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2 max-h-[60vh] overflow-y-auto">
-            {/* Progress overview */}
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/20 border border-border/30">
               <Progress value={detailProject?.completion_percent || 0} className="h-2 flex-1" />
               <span className="text-xs font-bold text-primary">{detailProject?.completion_percent || 0}%</span>
               <Badge className={`text-[10px] border ${STATUS_STYLES[detailProject?.status] || ""}`}>{detailProject?.status}</Badge>
             </div>
-
             {detailProject?.completion_notes && (
               <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Summary</p>
                 <p className="text-sm text-card-foreground">{detailProject.completion_notes}</p>
               </div>
             )}
-
-            {/* Add note */}
             <div className="flex gap-2">
               <Input value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Add a progress update..." className="flex-1"
                 onKeyDown={(e) => { if (e.key === "Enter" && detailProject) handleAddNote(detailProject.id); }}
@@ -431,8 +620,6 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
-
-            {/* Notes list */}
             {(() => {
               const notes = projectNotes.filter((n: any) => n.project_id === detailProject?.id);
               return notes.length === 0 ? (
@@ -496,7 +683,6 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
                         {p.budget && <span>${Number(p.budget).toFixed(0)}</span>}
                         {p.deadline && <span>Due {p.deadline}</span>}
                       </div>
-                      {/* Progress bar */}
                       {(p.completion_percent > 0) && (
                         <Progress value={p.completion_percent} className="h-1.5 mt-2" />
                       )}
