@@ -776,25 +776,45 @@ function ProjectsTab({ projects, clients, projectNotes, payments, invoices, addP
           {filtered.map((p: any) => {
             const client = clients.find((c: any) => c.id === p.client_id);
             const noteCount = projectNotes.filter((n: any) => n.project_id === p.id).length;
+            const payStatus = getPaymentStatus(p.id);
+            const links = Array.isArray(p.project_links) ? p.project_links : [];
+            const estHrs = p.estimated_hours ? Number(p.estimated_hours) : null;
+            const spent = p.time_spent ? Number(p.time_spent) : 0;
+            const hoursPercent = estHrs && estHrs > 0 ? (spent / estHrs) * 100 : 0;
+            const hoursWarning = hoursPercent >= 90;
             return (
-              <Card key={p.id} className="group card-elevated">
-                <CardContent className="p-4">
+              <Card key={p.id} className={`group card-elevated ${hoursWarning ? "border-destructive/30" : ""}`}>
+                <CardContent className="p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
+                        {/* Priority dot */}
+                        <span className={`h-2 w-2 rounded-full shrink-0 ${PRIORITY_COLORS[p.priority] || PRIORITY_COLORS.medium}`} title={`${p.priority} priority`} />
                         <p className="font-semibold text-card-foreground text-sm">{p.name}</p>
-                        <Badge className={`text-[10px] border ${STATUS_STYLES[p.status] || ""}`}>{p.status}</Badge>
+                        <Badge className={`text-[9px] border ${STATUS_STYLES[p.status] || ""}`}>{p.status}</Badge>
+                        <Badge className={`text-[9px] border ${payStatus.style}`}>{payStatus.label}</Badge>
                         {p.completion_percent > 0 && p.completion_percent < 100 && (
                           <span className="text-[10px] font-medium text-primary">{p.completion_percent}%</span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
+                      <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground flex-wrap">
                         {client && <span>{client.name}</span>}
                         {p.budget && <span>${Number(p.budget).toFixed(0)}</span>}
                         {p.deadline && <span>Due {p.deadline}</span>}
+                        {estHrs && (
+                          <span className={hoursWarning ? "text-destructive font-semibold" : ""}>
+                            {spent}h / {estHrs}h {hoursWarning ? "⚠️" : ""}
+                          </span>
+                        )}
+                        {/* Quick Links */}
+                        {links.map((l: any, i: number) => (
+                          <a key={i} href={l.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-primary hover:underline" title={l.url}>
+                            <ExternalLink className="h-2.5 w-2.5" /> {l.label || "Link"}
+                          </a>
+                        ))}
                       </div>
                       {(p.completion_percent > 0) && (
-                        <Progress value={p.completion_percent} className="h-1.5 mt-2" />
+                        <Progress value={p.completion_percent} className="h-1 mt-2" />
                       )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
