@@ -829,8 +829,31 @@ function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, d
   );
 }
 
-/* ==================== INVOICES TAB ==================== */
-function InvoicesTab({ invoices, clients, settings, deleteInvoice, onNewInvoice }: any) {
+/* ==================== INVOICES TAB (with overdue + mark as paid) ==================== */
+function InvoicesTab({ invoices, clients, settings, deleteInvoice, updateInvoice, onNewInvoice, addPayment, payments, projects, handlePaymentStatusChange }: any) {
+  const handleMarkPaid = (inv: any) => {
+    // Update invoice status
+    updateInvoice(inv.id, { status: "paid" });
+    // Check if a linked payment exists
+    if (inv.payment_id) {
+      const payment = payments.find((p: any) => p.id === inv.payment_id);
+      if (payment && payment.status !== "paid") {
+        handlePaymentStatusChange(payment.id, "paid", payment);
+      }
+    } else {
+      // Create a new payment entry
+      addPayment({
+        amount: inv.total,
+        client_id: inv.client_id || null,
+        project_id: inv.project_id || null,
+        description: `Invoice ${inv.invoice_number} payment`,
+        status: "paid",
+        date: new Date().toISOString().split("T")[0],
+      });
+    }
+    toast.success("Invoice marked as paid & payment recorded!");
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
@@ -840,32 +863,52 @@ function InvoicesTab({ invoices, clients, settings, deleteInvoice, onNewInvoice 
         <EmptyState icon={FileText} text="No invoices yet. Create one from a payment or start fresh!" />
       ) : (
         <div className="space-y-2">
-          {invoices.map((inv: any) => (
-            <Card key={inv.id} className="group card-elevated">
-              <CardContent className="p-4 flex items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-card-foreground text-sm">{inv.invoice_number}</p>
-                    <Badge className={`text-[10px] border ${STATUS_STYLES[inv.status] || ""}`}>{inv.status}</Badge>
+          {invoices.map((inv: any) => {
+            const isOverdue = inv.status !== "paid" && inv.due_date && new Date(inv.due_date) < new Date();
+            return (
+              <Card key={inv.id} className={`group card-elevated ${isOverdue ? "border-destructive/40 bg-destructive/5" : ""}`}>
+                <CardContent className="p-4 flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-card-foreground text-sm">{inv.invoice_number}</p>
+                      {isOverdue ? (
+                        <Badge className="text-[10px] border bg-destructive/10 text-destructive border-destructive/20 gap-1">
+                          <AlertCircle className="h-2.5 w-2.5" /> Overdue
+                        </Badge>
+                      ) : (
+                        <Badge className={`text-[10px] border ${STATUS_STYLES[inv.status] || ""}`}>{inv.status}</Badge>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      {inv.client_name} · ${inv.total.toFixed(2)} · {inv.issued_date}
+                      {inv.due_date ? ` · Due ${inv.due_date}` : ""}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">
-                    {inv.client_name} · ${inv.total.toFixed(2)} · {inv.issued_date}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {inv.status !== "paid" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs gap-1 text-success border-success/30 hover:bg-success/10"
+                        onClick={() => handleMarkPaid(inv)}
+                      >
+                        <CheckCircle className="h-3 w-3" /> Mark Paid
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                      const invoiceData = { invoiceNumber: inv.invoice_number, issuedDate: inv.issued_date, dueDate: inv.due_date, clientName: inv.client_name, clientEmail: inv.client_email, clientCompany: inv.client_company, lineItems: inv.line_items, subtotal: inv.subtotal, taxRate: inv.tax_rate, taxAmount: inv.tax_amount, discountPercent: inv.discount_percent, discountAmount: inv.discount_amount, total: inv.total, notes: inv.notes, template: inv.template, status: inv.status };
+                      generateInvoicePDF(invoiceData);
+                    }}>
+                      <FileDown className="h-3 w-3" /> PDF
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => deleteInvoice(inv.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
-                    const invoiceData = { invoiceNumber: inv.invoice_number, issuedDate: inv.issued_date, dueDate: inv.due_date, clientName: inv.client_name, clientEmail: inv.client_email, clientCompany: inv.client_company, lineItems: inv.line_items, subtotal: inv.subtotal, taxRate: inv.tax_rate, taxAmount: inv.tax_amount, discountPercent: inv.discount_percent, discountAmount: inv.discount_amount, total: inv.total, notes: inv.notes, template: inv.template, status: inv.status };
-                    generateInvoicePDF(invoiceData);
-                  }}>
-                    <FileDown className="h-3 w-3" /> PDF
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => deleteInvoice(inv.id)}>
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
