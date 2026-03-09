@@ -115,7 +115,7 @@ export function useTimeTracking() {
     entries,
     runningEntry,
     totalTrackedToday,
-    startTimer: (p: { project_id?: string | null; client_id?: string | null; description?: string }) =>
+    startTimer: (p: { project_id?: string | null; client_id?: string | null; description?: string; is_billable?: boolean }) =>
       startTimer.mutate(p),
     stopTimer: () => stopTimer.mutate(),
     deleteEntry: (id: string) => deleteEntry.mutate(id),
