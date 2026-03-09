@@ -38,7 +38,7 @@ export function useTimeTracking() {
   const runningEntry = entries.find((e) => e.is_running);
 
   const startTimer = useMutation({
-    mutationFn: async (params: { project_id?: string | null; client_id?: string | null; description?: string }) => {
+    mutationFn: async (params: { project_id?: string | null; client_id?: string | null; description?: string; is_billable?: boolean }) => {
       // Stop any running timer first
       if (runningEntry) {
         const now = new Date();
