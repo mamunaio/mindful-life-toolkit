@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useTimeTracking, type TimeEntry } from "@/hooks/useTimeTracking";
 import type { Client } from "@/hooks/useFreelance";
 import type { Project } from "@/hooks/useFreelance";
@@ -51,17 +53,27 @@ export default function TimeTrackingTab({ clients, projects }: TimeTrackingTabPr
   const [description, setDescription] = useState("");
   const [projectId, setProjectId] = useState<string>("");
   const [clientId, setClientId] = useState<string>("");
+  const [isBillable, setIsBillable] = useState(true);
 
   const handleStart = () => {
     startTimer({
       project_id: projectId || null,
       client_id: clientId || null,
       description: description || undefined,
+      is_billable: isBillable,
     });
     setDescription("");
   };
 
   const completedEntries = entries.filter((e) => !e.is_running);
+
+  // Billable stats
+  const billableToday = entries
+    .filter((e) => {
+      const today = new Date().toISOString().slice(0, 10);
+      return e.start_time.slice(0, 10) === today && !e.is_running && (e as any).is_billable !== false;
+    })
+    .reduce((s, e) => s + (e.duration_minutes || 0), 0);
 
   return (
     <div className="space-y-4">
@@ -74,6 +86,12 @@ export default function TimeTrackingTab({ clients, projects }: TimeTrackingTabPr
                 <div className="flex items-center gap-2">
                   <div className="h-2.5 w-2.5 rounded-full bg-success animate-pulse" />
                   <span className="text-sm font-medium text-foreground">Timer Running</span>
+                  {(runningEntry as any).is_billable !== false && (
+                    <Badge variant="secondary" className="text-[9px]">Billable</Badge>
+                  )}
+                  {(runningEntry as any).is_billable === false && (
+                    <Badge variant="outline" className="text-[9px] text-muted-foreground">Non-billable</Badge>
+                  )}
                 </div>
                 <Button variant="destructive" size="sm" onClick={stopTimer} className="gap-1.5">
                   <Square className="h-3.5 w-3.5" /> Stop
@@ -134,6 +152,13 @@ export default function TimeTrackingTab({ clients, projects }: TimeTrackingTabPr
                   </SelectContent>
                 </Select>
               </div>
+              {/* Billable Toggle */}
+              <div className="flex items-center justify-between px-1">
+                <Label htmlFor="billable-toggle" className="text-xs text-muted-foreground cursor-pointer">
+                  {isBillable ? "💰 Billable" : "📋 Non-billable"}
+                </Label>
+                <Switch id="billable-toggle" checked={isBillable} onCheckedChange={setIsBillable} />
+              </div>
               <Button onClick={handleStart} className="w-full gap-2">
                 <Play className="h-4 w-4" /> Start Timer
               </Button>
@@ -143,10 +168,15 @@ export default function TimeTrackingTab({ clients, projects }: TimeTrackingTabPr
       </Card>
 
       {/* Today's Stats */}
-      <div className="flex items-center gap-3 px-1">
-        <Clock className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">
-          Today: <strong className="text-foreground">{formatDuration(totalTrackedToday)}</strong>
+      <div className="flex items-center gap-4 px-1">
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
+            Today: <strong className="text-foreground">{formatDuration(totalTrackedToday)}</strong>
+          </span>
+        </div>
+        <span className="text-xs text-muted-foreground">
+          Billable: <strong className="text-success">{formatDuration(billableToday)}</strong>
         </span>
       </div>
 
@@ -162,6 +192,7 @@ export default function TimeTrackingTab({ clients, projects }: TimeTrackingTabPr
             const project = projects.find((p) => p.id === entry.project_id);
             const client = clients.find((c) => c.id === entry.client_id);
             const date = new Date(entry.start_time).toLocaleDateString();
+            const billable = (entry as any).is_billable !== false;
             return (
               <Card key={entry.id} className="border-border/50">
                 <CardContent className="p-3 flex items-center justify-between">
@@ -179,6 +210,11 @@ export default function TimeTrackingTab({ clients, projects }: TimeTrackingTabPr
                         <Badge variant="outline" className="text-[10px] shrink-0">
                           {client.name}
                         </Badge>
+                      )}
+                      {billable ? (
+                        <Badge className="text-[9px] bg-success/10 text-success border-success/20 shrink-0">Billable</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[9px] text-muted-foreground shrink-0">Non-billable</Badge>
                       )}
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">

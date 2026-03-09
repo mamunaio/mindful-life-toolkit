@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
-import { Download, FileDown, TrendingUp, TrendingDown, DollarSign, Clock, CalendarDays } from "lucide-react";
+import { Download, FileDown, TrendingUp, TrendingDown, DollarSign, Clock, CalendarDays, Percent } from "lucide-react";
 import type { Payment, FreelanceExpense, Client, Project, Withdrawal } from "@/hooks/useFreelance";
 import type { TimeEntry } from "@/hooks/useTimeTracking";
 
@@ -52,7 +52,6 @@ export default function ReportsTab({ payments, expenses, clients, projects, with
     label: new Date(2000, i).toLocaleString("default", { month: "long" }),
   }));
 
-  // Filter data by period
   const periodFilter = useMemo(() => {
     const year = parseInt(selectedYear);
     const month = parseInt(selectedMonth);
@@ -79,8 +78,13 @@ export default function ReportsTab({ payments, expenses, clients, projects, with
   const totalWithdrawn = filteredWithdrawals.reduce((s, w) => s + w.amount, 0);
   const netProfit = totalEarned - totalExpenses;
   const totalHours = filteredTimeEntries.reduce((s, t) => s + (t.duration_minutes || 0), 0) / 60;
+  const profitMargin = totalEarned > 0 ? Math.round((netProfit / totalEarned) * 100) : 0;
 
-  // Revenue by client
+  // Billable hours only
+  const billableHours = filteredTimeEntries
+    .filter((t) => (t as any).is_billable !== false)
+    .reduce((s, t) => s + (t.duration_minutes || 0), 0) / 60;
+
   const clientRevenue = useMemo(() => {
     const map: Record<string, number> = {};
     filteredPayments.filter((p) => p.status === "paid").forEach((p) => {
@@ -91,14 +95,12 @@ export default function ReportsTab({ payments, expenses, clients, projects, with
     return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   }, [filteredPayments, clients]);
 
-  // Expense by category
   const expenseByCategory = useMemo(() => {
     const map: Record<string, number> = {};
     filteredExpenses.forEach((e) => { map[e.category] = (map[e.category] || 0) + e.amount; });
     return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   }, [filteredExpenses]);
 
-  // Monthly breakdown for yearly view
   const monthlyBreakdown = useMemo(() => {
     if (viewMode !== "yearly") return [];
     const year = parseInt(selectedYear);
@@ -110,20 +112,21 @@ export default function ReportsTab({ payments, expenses, clients, projects, with
     });
   }, [viewMode, selectedYear, payments, expenses]);
 
-  // Project summary
+  // Project summary - use billable hours for $/hr
   const projectSummary = useMemo(() => {
     return projects.map((p) => {
       const pPayments = filteredPayments.filter((pay) => pay.project_id === p.id && pay.status === "paid");
       const pTime = filteredTimeEntries.filter((t) => t.project_id === p.id);
+      const pBillableTime = pTime.filter((t) => (t as any).is_billable !== false);
       const earned = pPayments.reduce((s, pay) => s + pay.amount, 0);
       const hours = pTime.reduce((s, t) => s + (t.duration_minutes || 0), 0) / 60;
+      const billableHrs = pBillableTime.reduce((s, t) => s + (t.duration_minutes || 0), 0) / 60;
       if (earned === 0 && hours === 0) return null;
       const client = clients.find((c) => c.id === p.client_id);
-      return { name: p.name, client: client?.name || "—", earned, hours, rate: hours > 0 ? earned / hours : 0 };
-    }).filter(Boolean) as { name: string; client: string; earned: number; hours: number; rate: number }[];
+      return { name: p.name, client: client?.name || "—", earned, hours, billableHours: billableHrs, rate: billableHrs > 0 ? earned / billableHrs : 0 };
+    }).filter(Boolean) as { name: string; client: string; earned: number; hours: number; billableHours: number; rate: number }[];
   }, [projects, filteredPayments, filteredTimeEntries, clients]);
 
-  // CSV Export
   const exportCSV = (type: "summary" | "payments" | "expenses" | "time") => {
     let csv = "";
     let filename = "";
@@ -135,12 +138,14 @@ export default function ReportsTab({ payments, expenses, clients, projects, with
       csv += `Total Pending,$${totalPending.toFixed(2)}\n`;
       csv += `Total Expenses,$${totalExpenses.toFixed(2)}\n`;
       csv += `Net Profit,$${netProfit.toFixed(2)}\n`;
+      csv += `Profit Margin,${profitMargin}%\n`;
       csv += `Total Withdrawn,$${totalWithdrawn.toFixed(2)}\n`;
       csv += `Total Hours,${totalHours.toFixed(1)}\n`;
+      csv += `Billable Hours,${billableHours.toFixed(1)}\n`;
       if (projectSummary.length) {
-        csv += "\nProject,Client,Earned,Hours,Hourly Rate\n";
+        csv += "\nProject,Client,Earned,Total Hours,Billable Hours,Hourly Rate\n";
         projectSummary.forEach((p) => {
-          csv += `"${p.name}","${p.client}",$${p.earned.toFixed(2)},${p.hours.toFixed(1)},$${p.rate.toFixed(2)}\n`;
+          csv += `"${p.name}","${p.client}",$${p.earned.toFixed(2)},${p.hours.toFixed(1)},${p.billableHours.toFixed(1)},$${p.rate.toFixed(2)}\n`;
         });
       }
       filename = `report-summary-${periodFilter.label.replace(/\s/g, "-")}.csv`;
@@ -159,11 +164,11 @@ export default function ReportsTab({ payments, expenses, clients, projects, with
       });
       filename = `expenses-${periodFilter.label.replace(/\s/g, "-")}.csv`;
     } else if (type === "time") {
-      csv = "Date,Duration (min),Project,Client,Description\n";
+      csv = "Date,Duration (min),Billable,Project,Client,Description\n";
       filteredTimeEntries.forEach((t) => {
         const project = projects.find((p) => p.id === t.project_id)?.name || "";
         const client = clients.find((c) => c.id === t.client_id)?.name || "";
-        csv += `${t.start_time.slice(0, 10)},${t.duration_minutes || 0},"${project}","${client}","${t.description || ""}"\n`;
+        csv += `${t.start_time.slice(0, 10)},${t.duration_minutes || 0},${(t as any).is_billable !== false ? "Yes" : "No"},"${project}","${client}","${t.description || ""}"\n`;
       });
       filename = `time-entries-${periodFilter.label.replace(/\s/g, "-")}.csv`;
     }
@@ -224,14 +229,15 @@ export default function ReportsTab({ payments, expenses, clients, projects, with
         <h2 className="text-lg font-semibold font-display text-card-foreground">{periodFilter.label} Report</h2>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+      {/* Summary Cards - now 7 with Profit Margin */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         <MiniStat icon={TrendingUp} label="Earned" value={`$${totalEarned.toFixed(0)}`} />
         <MiniStat icon={Clock} label="Pending" value={`$${totalPending.toFixed(0)}`} />
         <MiniStat icon={TrendingDown} label="Expenses" value={`$${totalExpenses.toFixed(0)}`} />
         <MiniStat icon={DollarSign} label="Net Profit" value={`$${netProfit.toFixed(0)}`} positive={netProfit >= 0} />
+        <MiniStat icon={Percent} label="Profit Margin" value={`${profitMargin}%`} positive={profitMargin >= 0} />
         <MiniStat icon={Download} label="Withdrawn" value={`$${totalWithdrawn.toFixed(0)}`} />
-        <MiniStat icon={Clock} label="Hours" value={totalHours.toFixed(1)} />
+        <MiniStat icon={Clock} label="Billable Hrs" value={billableHours.toFixed(1)} />
       </div>
 
       {/* Charts */}
@@ -310,8 +316,9 @@ export default function ReportsTab({ payments, expenses, clients, projects, with
                   <TableHead>Project</TableHead>
                   <TableHead>Client</TableHead>
                   <TableHead className="text-right">Earned</TableHead>
-                  <TableHead className="text-right">Hours</TableHead>
-                  <TableHead className="text-right">$/hr</TableHead>
+                  <TableHead className="text-right">Total Hrs</TableHead>
+                  <TableHead className="text-right">Billable Hrs</TableHead>
+                  <TableHead className="text-right">$/hr <span className="text-[9px] text-muted-foreground">(billable)</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -321,7 +328,8 @@ export default function ReportsTab({ payments, expenses, clients, projects, with
                     <TableCell className="text-muted-foreground">{p.client}</TableCell>
                     <TableCell className="text-right">${p.earned.toFixed(0)}</TableCell>
                     <TableCell className="text-right">{p.hours.toFixed(1)}</TableCell>
-                    <TableCell className="text-right">${p.rate.toFixed(0)}</TableCell>
+                    <TableCell className="text-right">{p.billableHours.toFixed(1)}</TableCell>
+                    <TableCell className="text-right font-semibold">${p.rate.toFixed(0)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -275,7 +275,7 @@ export default function Freelance() {
             onCreateInvoice={(prefill: any) => { setInvoicePrefill(prefill); setInvoiceOpen(true); }}
           />
         </TabsContent>
-        <TabsContent value="proposals"><ProposalsTab clients={clients} projects={projects} addProject={addProject} /></TabsContent>
+        <TabsContent value="proposals"><ProposalsTab clients={clients} projects={projects} addProject={(p: any) => addProject(p)} /></TabsContent>
         <TabsContent value="projects">
           <ProjectsTab
             projects={projects} clients={clients}
@@ -293,7 +293,13 @@ export default function Freelance() {
             onCreateInvoice={(prefill: any) => { setInvoicePrefill(prefill); setInvoiceOpen(true); }} />
         </TabsContent>
         <TabsContent value="invoices">
-          <InvoicesTab invoices={invoices} clients={clients} settings={settings} deleteInvoice={deleteInvoice} onNewInvoice={() => { setInvoicePrefill(null); setInvoiceOpen(true); }} />
+          <InvoicesTab
+            invoices={invoices} clients={clients} settings={settings}
+            deleteInvoice={deleteInvoice} updateInvoice={updateInvoice}
+            onNewInvoice={() => { setInvoicePrefill(null); setInvoiceOpen(true); }}
+            addPayment={addPayment} payments={payments} projects={projects}
+            handlePaymentStatusChange={handlePaymentStatusChange}
+          />
         </TabsContent>
         <TabsContent value="withdrawals"><WithdrawalsTab withdrawals={withdrawals} addWithdrawal={addWithdrawal} deleteWithdrawal={deleteWithdrawal} /></TabsContent>
         <TabsContent value="expenses"><ExpensesTab expenses={expenses} addExpense={addExpense} deleteExpense={deleteExpense} /></TabsContent>
@@ -445,8 +451,8 @@ function ClientsTab({ clients, addClient, deleteClient, payments, projects, onCr
   );
 }
 
-/* ==================== PROJECTS TAB (fully editable) ==================== */
-function ProjectsTab({ projects, clients, projectNotes, addProject, updateProject, deleteProject, onStatusChange, addProjectNote, deleteProjectNote }: any) {
+/* ==================== PROJECTS TAB (agency-grade) ==================== */
+function ProjectsTab({ projects, clients, projectNotes, payments, invoices, addProject, updateProject, deleteProject, onStatusChange, addProjectNote, deleteProjectNote }: any) {
   const [addOpen, setAddOpen] = useState(false);
   const [editProject, setEditProject] = useState<any>(null);
   const [detailProject, setDetailProject] = useState<any>(null);
@@ -458,6 +464,9 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
   const [description, setDescription] = useState("");
   const [budget, setBudget] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [priority, setPriority] = useState("medium");
+  const [estimatedHours, setEstimatedHours] = useState("");
+  const [projectLinks, setProjectLinks] = useState<{ label: string; url: string }[]>([]);
   const [editName, setEditName] = useState("");
   const [editClientId, setEditClientId] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -465,12 +474,43 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
   const [editDeadline, setEditDeadline] = useState("");
   const [editPercent, setEditPercent] = useState(0);
   const [editCompletionNotes, setEditCompletionNotes] = useState("");
+  const [editPriority, setEditPriority] = useState("medium");
+  const [editEstimatedHours, setEditEstimatedHours] = useState("");
+  const [editTimeSpent, setEditTimeSpent] = useState("");
+  const [editLinks, setEditLinks] = useState<{ label: string; url: string }[]>([]);
   const [noteText, setNoteText] = useState("");
+
+  const PRIORITY_COLORS: Record<string, string> = {
+    high: "bg-destructive",
+    medium: "bg-warning",
+    low: "bg-success",
+  };
+
+  const getPaymentStatus = (projectId: string) => {
+    const projectPayments = (payments || []).filter((p: any) => p.project_id === projectId);
+    const projectInvoices = (invoices || []).filter((i: any) => i.project_id === projectId);
+    const totalPaid = projectPayments.filter((p: any) => p.status === "paid").reduce((s: number, p: any) => s + p.amount, 0);
+    const totalInvoiced = projectInvoices.reduce((s: number, i: any) => s + i.total, 0);
+    const project = projects.find((p: any) => p.id === projectId);
+    const budget = project?.budget || 0;
+    if (totalPaid >= budget && budget > 0) return { label: "Paid", style: "bg-success/10 text-success border-success/20" };
+    if (totalPaid > 0) return { label: "Partial", style: "bg-warning/10 text-warning border-warning/20" };
+    if (totalInvoiced > 0) return { label: "Invoiced", style: "bg-primary/10 text-primary border-primary/20" };
+    return { label: "Unbilled", style: "bg-muted text-muted-foreground border-border" };
+  };
 
   const handleAdd = () => {
     if (!name.trim()) return;
-    addProject({ name: name.trim(), client_id: clientId || null, description: description || null, status: "active", budget: budget ? parseFloat(budget) : null, deadline: deadline || null, completion_percent: 0, completion_notes: null });
-    setName(""); setClientId(""); setDescription(""); setBudget(""); setDeadline(""); setAddOpen(false);
+    addProject({
+      name: name.trim(), client_id: clientId || null, description: description || null,
+      status: "active", budget: budget ? parseFloat(budget) : null, deadline: deadline || null,
+      completion_percent: 0, completion_notes: null, priority,
+      estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
+      project_links: projectLinks.filter(l => l.url.trim()),
+      time_spent: 0,
+    });
+    setName(""); setClientId(""); setDescription(""); setBudget(""); setDeadline("");
+    setPriority("medium"); setEstimatedHours(""); setProjectLinks([]); setAddOpen(false);
   };
 
   const openEdit = (p: any) => {
@@ -482,6 +522,10 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
     setEditDeadline(p.deadline || "");
     setEditPercent(p.completion_percent || 0);
     setEditCompletionNotes(p.completion_notes || "");
+    setEditPriority(p.priority || "medium");
+    setEditEstimatedHours(p.estimated_hours ? String(p.estimated_hours) : "");
+    setEditTimeSpent(p.time_spent ? String(p.time_spent) : "0");
+    setEditLinks(Array.isArray(p.project_links) ? [...p.project_links] : []);
   };
 
   const handleSaveEdit = () => {
@@ -492,6 +536,10 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
       name: editName.trim(), client_id: editClientId || null, description: editDescription || null,
       budget: editBudget ? parseFloat(editBudget) : null, deadline: editDeadline || null,
       completion_percent: editPercent, completion_notes: editCompletionNotes || null, status: newStatus,
+      priority: editPriority,
+      estimated_hours: editEstimatedHours ? parseFloat(editEstimatedHours) : null,
+      time_spent: editTimeSpent ? parseFloat(editTimeSpent) : 0,
+      project_links: editLinks.filter(l => l.url.trim()),
     });
     if (wasCompleted) onStatusChange(editProject.id, "completed");
     toast.success("Project updated!");
@@ -534,20 +582,50 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
         <div className="flex-1" />
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild><Button className="gap-1 h-8 text-xs"><Plus className="h-3.5 w-3.5" /> Add Project</Button></DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle className="font-display">New Project</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
               <div className="space-y-1"><Label className="text-xs font-medium">Name *</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Project name" /></div>
-              <div className="space-y-1">
-                <Label className="text-xs font-medium">Client</Label>
-                <Select value={clientId} onValueChange={setClientId}>
-                  <SelectTrigger><SelectValue placeholder="Select client (optional)" /></SelectTrigger>
-                  <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Client</Label>
+                  <Select value={clientId} onValueChange={setClientId}>
+                    <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
+                    <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Priority</Label>
+                  <Select value={priority} onValueChange={setPriority}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="high">🔴 High</SelectItem>
+                      <SelectItem value="medium">🟡 Medium</SelectItem>
+                      <SelectItem value="low">🟢 Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-1"><Label className="text-xs font-medium">Budget</Label><Input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="0.00" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label className="text-xs font-medium">Budget</Label><Input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="0.00" /></div>
+                <div className="space-y-1"><Label className="text-xs font-medium">Estimated Hours</Label><Input type="number" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="0" /></div>
+              </div>
               <div className="space-y-1"><Label className="text-xs font-medium">Deadline</Label><Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} /></div>
               <div className="space-y-1"><Label className="text-xs font-medium">Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Project details..." /></div>
+              {/* Project Links */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium flex items-center gap-1"><Link2 className="h-3 w-3" /> Important Links</Label>
+                {projectLinks.map((l, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input value={l.label} onChange={(e) => { const nl = [...projectLinks]; nl[i] = { ...nl[i], label: e.target.value }; setProjectLinks(nl); }} placeholder="Label (e.g. Figma)" className="w-28" />
+                    <Input value={l.url} onChange={(e) => { const nl = [...projectLinks]; nl[i] = { ...nl[i], url: e.target.value }; setProjectLinks(nl); }} placeholder="https://..." className="flex-1" />
+                    <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 hover:text-destructive" onClick={() => setProjectLinks(projectLinks.filter((_, idx) => idx !== i))}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => setProjectLinks([...projectLinks, { label: "", url: "" }])} className="text-xs">+ Add Link</Button>
+              </div>
               <Button className="w-full" onClick={handleAdd} disabled={!name.trim()}>Add Project</Button>
             </div>
           </DialogContent>
@@ -556,25 +634,56 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
 
       {/* Edit Dialog */}
       <Dialog open={!!editProject} onOpenChange={(o) => !o && setEditProject(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Edit Project</DialogTitle></DialogHeader>
-          <div className="space-y-4 pt-2 max-h-[70vh] overflow-y-auto">
+          <div className="space-y-4 pt-2">
             <div className="space-y-1"><Label className="text-xs font-medium">Name *</Label><Input value={editName} onChange={(e) => setEditName(e.target.value)} /></div>
-            <div className="space-y-1">
-              <Label className="text-xs font-medium">Client</Label>
-              <Select value={editClientId} onValueChange={setEditClientId}>
-                <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No client</SelectItem>
-                  {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Client</Label>
+                <Select value={editClientId} onValueChange={setEditClientId}>
+                  <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No client</SelectItem>
+                    {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Priority</Label>
+                <Select value={editPriority} onValueChange={setEditPriority}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">🔴 High</SelectItem>
+                    <SelectItem value="medium">🟡 Medium</SelectItem>
+                    <SelectItem value="low">🟢 Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1"><Label className="text-xs font-medium">Budget</Label><Input type="number" value={editBudget} onChange={(e) => setEditBudget(e.target.value)} placeholder="0.00" /></div>
               <div className="space-y-1"><Label className="text-xs font-medium">Deadline</Label><Input type="date" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} /></div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1"><Label className="text-xs font-medium">Estimated Hours</Label><Input type="number" value={editEstimatedHours} onChange={(e) => setEditEstimatedHours(e.target.value)} placeholder="0" /></div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Time Spent (hrs)</Label><Input type="number" value={editTimeSpent} onChange={(e) => setEditTimeSpent(e.target.value)} placeholder="0" /></div>
+            </div>
             <div className="space-y-1"><Label className="text-xs font-medium">Description</Label><Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Project details..." rows={2} /></div>
+            {/* Important Links */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium flex items-center gap-1"><Link2 className="h-3 w-3" /> Important Links</Label>
+              {editLinks.map((l, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input value={l.label} onChange={(e) => { const nl = [...editLinks]; nl[i] = { ...nl[i], label: e.target.value }; setEditLinks(nl); }} placeholder="Label" className="w-28" />
+                  <Input value={l.url} onChange={(e) => { const nl = [...editLinks]; nl[i] = { ...nl[i], url: e.target.value }; setEditLinks(nl); }} placeholder="https://..." className="flex-1" />
+                  <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 hover:text-destructive" onClick={() => setEditLinks(editLinks.filter((_, idx) => idx !== i))}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+              <Button variant="outline" size="sm" onClick={() => setEditLinks([...editLinks, { label: "", url: "" }])} className="text-xs">+ Add Link</Button>
+            </div>
             <div className="space-y-2 p-3 rounded-lg bg-muted/20 border border-border/30">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-medium">Completion Progress</Label>
@@ -667,25 +776,45 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
           {filtered.map((p: any) => {
             const client = clients.find((c: any) => c.id === p.client_id);
             const noteCount = projectNotes.filter((n: any) => n.project_id === p.id).length;
+            const payStatus = getPaymentStatus(p.id);
+            const links = Array.isArray(p.project_links) ? p.project_links : [];
+            const estHrs = p.estimated_hours ? Number(p.estimated_hours) : null;
+            const spent = p.time_spent ? Number(p.time_spent) : 0;
+            const hoursPercent = estHrs && estHrs > 0 ? (spent / estHrs) * 100 : 0;
+            const hoursWarning = hoursPercent >= 90;
             return (
-              <Card key={p.id} className="group card-elevated">
-                <CardContent className="p-4">
+              <Card key={p.id} className={`group card-elevated ${hoursWarning ? "border-destructive/30" : ""}`}>
+                <CardContent className="p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
+                        {/* Priority dot */}
+                        <span className={`h-2 w-2 rounded-full shrink-0 ${PRIORITY_COLORS[p.priority] || PRIORITY_COLORS.medium}`} title={`${p.priority} priority`} />
                         <p className="font-semibold text-card-foreground text-sm">{p.name}</p>
-                        <Badge className={`text-[10px] border ${STATUS_STYLES[p.status] || ""}`}>{p.status}</Badge>
+                        <Badge className={`text-[9px] border ${STATUS_STYLES[p.status] || ""}`}>{p.status}</Badge>
+                        <Badge className={`text-[9px] border ${payStatus.style}`}>{payStatus.label}</Badge>
                         {p.completion_percent > 0 && p.completion_percent < 100 && (
                           <span className="text-[10px] font-medium text-primary">{p.completion_percent}%</span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
+                      <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground flex-wrap">
                         {client && <span>{client.name}</span>}
                         {p.budget && <span>${Number(p.budget).toFixed(0)}</span>}
                         {p.deadline && <span>Due {p.deadline}</span>}
+                        {estHrs && (
+                          <span className={hoursWarning ? "text-destructive font-semibold" : ""}>
+                            {spent}h / {estHrs}h {hoursWarning ? "⚠️" : ""}
+                          </span>
+                        )}
+                        {/* Quick Links */}
+                        {links.map((l: any, i: number) => (
+                          <a key={i} href={l.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-primary hover:underline" title={l.url}>
+                            <ExternalLink className="h-2.5 w-2.5" /> {l.label || "Link"}
+                          </a>
+                        ))}
                       </div>
                       {(p.completion_percent > 0) && (
-                        <Progress value={p.completion_percent} className="h-1.5 mt-2" />
+                        <Progress value={p.completion_percent} className="h-1 mt-2" />
                       )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
@@ -823,8 +952,31 @@ function PaymentsTab({ payments, clients, projects, addPayment, updatePayment, d
   );
 }
 
-/* ==================== INVOICES TAB ==================== */
-function InvoicesTab({ invoices, clients, settings, deleteInvoice, onNewInvoice }: any) {
+/* ==================== INVOICES TAB (with overdue + mark as paid) ==================== */
+function InvoicesTab({ invoices, clients, settings, deleteInvoice, updateInvoice, onNewInvoice, addPayment, payments, projects, handlePaymentStatusChange }: any) {
+  const handleMarkPaid = (inv: any) => {
+    // Update invoice status
+    updateInvoice(inv.id, { status: "paid" });
+    // Check if a linked payment exists
+    if (inv.payment_id) {
+      const payment = payments.find((p: any) => p.id === inv.payment_id);
+      if (payment && payment.status !== "paid") {
+        handlePaymentStatusChange(payment.id, "paid", payment);
+      }
+    } else {
+      // Create a new payment entry
+      addPayment({
+        amount: inv.total,
+        client_id: inv.client_id || null,
+        project_id: inv.project_id || null,
+        description: `Invoice ${inv.invoice_number} payment`,
+        status: "paid",
+        date: new Date().toISOString().split("T")[0],
+      });
+    }
+    toast.success("Invoice marked as paid & payment recorded!");
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
@@ -834,32 +986,52 @@ function InvoicesTab({ invoices, clients, settings, deleteInvoice, onNewInvoice 
         <EmptyState icon={FileText} text="No invoices yet. Create one from a payment or start fresh!" />
       ) : (
         <div className="space-y-2">
-          {invoices.map((inv: any) => (
-            <Card key={inv.id} className="group card-elevated">
-              <CardContent className="p-4 flex items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-card-foreground text-sm">{inv.invoice_number}</p>
-                    <Badge className={`text-[10px] border ${STATUS_STYLES[inv.status] || ""}`}>{inv.status}</Badge>
+          {invoices.map((inv: any) => {
+            const isOverdue = inv.status !== "paid" && inv.due_date && new Date(inv.due_date) < new Date();
+            return (
+              <Card key={inv.id} className={`group card-elevated ${isOverdue ? "border-destructive/40 bg-destructive/5" : ""}`}>
+                <CardContent className="p-4 flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-card-foreground text-sm">{inv.invoice_number}</p>
+                      {isOverdue ? (
+                        <Badge className="text-[10px] border bg-destructive/10 text-destructive border-destructive/20 gap-1">
+                          <AlertCircle className="h-2.5 w-2.5" /> Overdue
+                        </Badge>
+                      ) : (
+                        <Badge className={`text-[10px] border ${STATUS_STYLES[inv.status] || ""}`}>{inv.status}</Badge>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      {inv.client_name} · ${inv.total.toFixed(2)} · {inv.issued_date}
+                      {inv.due_date ? ` · Due ${inv.due_date}` : ""}
+                    </div>
                   </div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">
-                    {inv.client_name} · ${inv.total.toFixed(2)} · {inv.issued_date}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {inv.status !== "paid" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs gap-1 text-success border-success/30 hover:bg-success/10"
+                        onClick={() => handleMarkPaid(inv)}
+                      >
+                        <CheckCircle className="h-3 w-3" /> Mark Paid
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                      const invoiceData = { invoiceNumber: inv.invoice_number, issuedDate: inv.issued_date, dueDate: inv.due_date, clientName: inv.client_name, clientEmail: inv.client_email, clientCompany: inv.client_company, lineItems: inv.line_items, subtotal: inv.subtotal, taxRate: inv.tax_rate, taxAmount: inv.tax_amount, discountPercent: inv.discount_percent, discountAmount: inv.discount_amount, total: inv.total, notes: inv.notes, template: inv.template, status: inv.status };
+                      generateInvoicePDF(invoiceData);
+                    }}>
+                      <FileDown className="h-3 w-3" /> PDF
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => deleteInvoice(inv.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
-                    const invoiceData = { invoiceNumber: inv.invoice_number, issuedDate: inv.issued_date, dueDate: inv.due_date, clientName: inv.client_name, clientEmail: inv.client_email, clientCompany: inv.client_company, lineItems: inv.line_items, subtotal: inv.subtotal, taxRate: inv.tax_rate, taxAmount: inv.tax_amount, discountPercent: inv.discount_percent, discountAmount: inv.discount_amount, total: inv.total, notes: inv.notes, template: inv.template, status: inv.status };
-                    generateInvoicePDF(invoiceData);
-                  }}>
-                    <FileDown className="h-3 w-3" /> PDF
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive" onClick={() => deleteInvoice(inv.id)}>
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

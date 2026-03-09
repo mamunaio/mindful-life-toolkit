@@ -38,7 +38,7 @@ export function useTimeTracking() {
   const runningEntry = entries.find((e) => e.is_running);
 
   const startTimer = useMutation({
-    mutationFn: async (params: { project_id?: string | null; client_id?: string | null; description?: string }) => {
+    mutationFn: async (params: { project_id?: string | null; client_id?: string | null; description?: string; is_billable?: boolean }) => {
       // Stop any running timer first
       if (runningEntry) {
         const now = new Date();
@@ -58,6 +58,7 @@ export function useTimeTracking() {
           client_id: params.client_id || null,
           description: params.description || null,
           is_running: true,
+          is_billable: params.is_billable !== false,
           start_time: new Date().toISOString(),
         } as any);
       if (error) throw error;
@@ -114,7 +115,7 @@ export function useTimeTracking() {
     entries,
     runningEntry,
     totalTrackedToday,
-    startTimer: (p: { project_id?: string | null; client_id?: string | null; description?: string }) =>
+    startTimer: (p: { project_id?: string | null; client_id?: string | null; description?: string; is_billable?: boolean }) =>
       startTimer.mutate(p),
     stopTimer: () => stopTimer.mutate(),
     deleteEntry: (id: string) => deleteEntry.mutate(id),
