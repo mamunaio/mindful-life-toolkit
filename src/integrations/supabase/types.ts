@@ -632,8 +632,10 @@ export type Database = {
           created_at: string
           deliverables: Json
           id: string
+          job_source_url: string | null
           notes: string | null
           payment_terms: string | null
+          portfolio_links: Json
           project_id: string | null
           scope: string | null
           status: string
@@ -651,8 +653,10 @@ export type Database = {
           created_at?: string
           deliverables?: Json
           id?: string
+          job_source_url?: string | null
           notes?: string | null
           payment_terms?: string | null
+          portfolio_links?: Json
           project_id?: string | null
           scope?: string | null
           status?: string
@@ -670,8 +674,10 @@ export type Database = {
           created_at?: string
           deliverables?: Json
           id?: string
+          job_source_url?: string | null
           notes?: string | null
           payment_terms?: string | null
+          portfolio_links?: Json
           project_id?: string | null
           scope?: string | null
           status?: string
@@ -819,6 +825,7 @@ export type Database = {
           duration_minutes: number | null
           end_time: string | null
           id: string
+          is_billable: boolean
           is_running: boolean
           project_id: string | null
           start_time: string
@@ -831,6 +838,7 @@ export type Database = {
           duration_minutes?: number | null
           end_time?: string | null
           id?: string
+          is_billable?: boolean
           is_running?: boolean
           project_id?: string | null
           start_time?: string
@@ -843,6 +851,7 @@ export type Database = {
           duration_minutes?: number | null
           end_time?: string | null
           id?: string
+          is_billable?: boolean
           is_running?: boolean
           project_id?: string | null
           start_time?: string
