@@ -1,11 +1,64 @@
-import { useState, useEffect, useRef } from "react";
-import { BookOpen, Brain, ListChecks, Plus, Trash2, Check, X, Send } from "lucide-react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import {
+  BookOpen, Brain, ListChecks, Plus, Trash2, Check, X, Send,
+  Search, Pin, PinOff, Tag, Bold, Italic, List, ListOrdered,
+  Code, Heading1, Heading2, ChevronLeft, FileText,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNotes } from "@/hooks/useNotes";
+import { useKnowledgeBase, Note } from "@/hooks/useKnowledgeBase";
+
+// ---------- Markdown toolbar helpers ----------
+function insertMarkdown(
+  ref: HTMLTextAreaElement | null,
+  prefix: string,
+  suffix: string = "",
+  placeholder: string = ""
+) {
+  if (!ref) return;
+  const start = ref.selectionStart;
+  const end = ref.selectionEnd;
+  const selected = ref.value.substring(start, end) || placeholder;
+  const before = ref.value.substring(0, start);
+  const after = ref.value.substring(end);
+  const newValue = `${before}${prefix}${selected}${suffix}${after}`;
+  ref.value = newValue;
+  ref.focus();
+  ref.setSelectionRange(start + prefix.length, start + prefix.length + selected.length);
+  return newValue;
+}
+
+// ---------- Tag colors ----------
+const TAG_COLORS: Record<string, string> = {
+  ideas: "bg-accent/15 text-accent border-accent/25",
+  business: "bg-primary/15 text-primary border-primary/25",
+  freelance: "bg-success/15 text-success border-success/25",
+  personal: "bg-warning/15 text-warning border-warning/25",
+  code: "bg-info/15 text-info border-info/25",
+};
+
+function getTagColor(tag: string) {
+  return TAG_COLORS[tag.toLowerCase()] || "bg-muted/30 text-muted-foreground border-border/50";
+}
+
+// ---------- Simple markdown preview ----------
+function renderMarkdown(text: string) {
+  return text
+    .replace(/```([\s\S]*?)```/g, '<pre class="bg-muted/40 rounded-lg p-3 text-xs font-mono my-2 overflow-x-auto border border-border/30"><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g, '<code class="bg-muted/40 px-1.5 py-0.5 rounded text-xs font-mono">$1</code>')
+    .replace(/^## (.+)$/gm, '<h2 class="text-base font-bold mt-3 mb-1">$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1 class="text-lg font-bold mt-3 mb-1">$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc">$1</li>')
+    .replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal">$1</li>')
+    .replace(/\n/g, '<br />');
+}
 
 export default function Notes() {
   const {
@@ -15,6 +68,7 @@ export default function Notes() {
     addChecklist, deleteChecklist,
     addChecklistItem, toggleChecklistItem, deleteChecklistItem,
   } = useNotes();
+  const { notes, addNote, updateNote, deleteNote } = useKnowledgeBase();
 
   const [journalDraft, setJournalDraft] = useState("");
   const [newListName, setNewListName] = useState("");
@@ -22,6 +76,18 @@ export default function Notes() {
   const [newItemText, setNewItemText] = useState("");
   const [localBrainDump, setLocalBrainDump] = useState(brainDump);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // KB state
+  const [activeNote, setActiveNote] = useState<Note | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
+  const [search, setSearch] = useState("");
+  const [filterTag, setFilterTag] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const editorRef = useRef<HTMLTextAreaElement>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => { setLocalBrainDump(brainDump); }, [brainDump]);
 
@@ -50,15 +116,115 @@ export default function Notes() {
     setAddingItemTo(null);
   };
 
+  // KB helpers
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    notes.forEach((n) => n.tags.forEach((t) => tags.add(t)));
+    return Array.from(tags).sort();
+  }, [notes]);
+
+  const filteredNotes = useMemo(() => {
+    let result = notes;
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter((n) =>
+        n.title.toLowerCase().includes(q) ||
+        n.content.toLowerCase().includes(q) ||
+        n.tags.some((t) => t.toLowerCase().includes(q))
+      );
+    }
+    if (filterTag) {
+      result = result.filter((n) => n.tags.includes(filterTag));
+    }
+    // Pinned first
+    return [...result].sort((a, b) => (a.is_pinned === b.is_pinned ? 0 : a.is_pinned ? -1 : 1));
+  }, [notes, search, filterTag]);
+
+  const openNote = useCallback((note: Note) => {
+    setActiveNote(note);
+    setEditTitle(note.title);
+    setEditContent(note.content);
+    setEditTags([...note.tags]);
+    setIsCreating(false);
+  }, []);
+
+  const startNewNote = () => {
+    setActiveNote(null);
+    setEditTitle("");
+    setEditContent("");
+    setEditTags([]);
+    setIsCreating(true);
+  };
+
+  const handleSave = useCallback(async () => {
+    if (isCreating) {
+      if (!editTitle.trim() && !editContent.trim()) return;
+      const created = await addNote({ title: editTitle, content: editContent, tags: editTags });
+      if (created) {
+        setActiveNote(created);
+        setIsCreating(false);
+      }
+    } else if (activeNote) {
+      updateNote(activeNote.id, { title: editTitle, content: editContent, tags: editTags });
+    }
+  }, [isCreating, activeNote, editTitle, editContent, editTags, addNote, updateNote]);
+
+  // Auto-save on content change (debounced)
+  useEffect(() => {
+    if (!activeNote && !isCreating) return;
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      if (activeNote) {
+        updateNote(activeNote.id, { title: editTitle, content: editContent, tags: editTags });
+      }
+    }, 1200);
+    return () => clearTimeout(saveTimerRef.current);
+  }, [editTitle, editContent, editTags]);
+
+  const addTagToNote = () => {
+    const tag = newTag.trim().toLowerCase().replace(/^#/, "");
+    if (tag && !editTags.includes(tag)) {
+      setEditTags([...editTags, tag]);
+    }
+    setNewTag("");
+  };
+
+  const removeTag = (tag: string) => setEditTags(editTags.filter((t) => t !== tag));
+
+  const handleToolbar = (action: string) => {
+    const ta = editorRef.current;
+    if (!ta) return;
+    let newVal: string | undefined;
+    switch (action) {
+      case "bold": newVal = insertMarkdown(ta, "**", "**", "bold text"); break;
+      case "italic": newVal = insertMarkdown(ta, "*", "*", "italic text"); break;
+      case "h1": newVal = insertMarkdown(ta, "# ", "", "Heading"); break;
+      case "h2": newVal = insertMarkdown(ta, "## ", "", "Subheading"); break;
+      case "ul": newVal = insertMarkdown(ta, "- ", "", "item"); break;
+      case "ol": newVal = insertMarkdown(ta, "1. ", "", "item"); break;
+      case "code": newVal = insertMarkdown(ta, "```\n", "\n```", "code here"); break;
+    }
+    if (newVal !== undefined) setEditContent(newVal);
+  };
+
+  const isEditing = isCreating || !!activeNote;
+
+  const getPreview = (content: string) => {
+    return content.replace(/[#*`\-\d.]/g, "").trim().slice(0, 120);
+  };
+
   return (
     <div className="page-container space-y-8">
       <div className="page-header">
         <h1 className="page-title">Notes</h1>
-        <p className="page-subtitle">Journal, brain dump, and checklists</p>
+        <p className="page-subtitle">Your second brain — notes, journal & checklists</p>
       </div>
 
-      <Tabs defaultValue="journal" className="space-y-5">
-        <TabsList className="grid w-full grid-cols-3 h-10">
+      <Tabs defaultValue="knowledge" className="space-y-5">
+        <TabsList className="grid w-full grid-cols-4 h-10">
+          <TabsTrigger value="knowledge" className="gap-1.5 text-xs sm:text-sm">
+            <FileText className="h-3.5 w-3.5" /> Knowledge Base
+          </TabsTrigger>
           <TabsTrigger value="journal" className="gap-1.5 text-xs sm:text-sm">
             <BookOpen className="h-3.5 w-3.5" /> Journal
           </TabsTrigger>
@@ -70,6 +236,226 @@ export default function Notes() {
           </TabsTrigger>
         </TabsList>
 
+        {/* =================== KNOWLEDGE BASE =================== */}
+        <TabsContent value="knowledge" className="space-y-4">
+          {/* Search + Actions */}
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search notes..."
+                className="pl-9 h-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Button size="sm" className="gap-1.5 h-9" onClick={startNewNote}>
+              <Plus className="h-4 w-4" /> New Note
+            </Button>
+          </div>
+
+          {/* Tag filter pills */}
+          {allTags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                onClick={() => setFilterTag(null)}
+                className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors border
+                  ${!filterTag ? "bg-primary/15 text-primary border-primary/25" : "bg-muted/20 text-muted-foreground border-transparent hover:bg-muted/40"}`}
+              >
+                All
+              </button>
+              {allTags.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => setFilterTag(filterTag === tag ? null : tag)}
+                  className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors border
+                    ${filterTag === tag ? getTagColor(tag) : "bg-muted/20 text-muted-foreground border-transparent hover:bg-muted/40"}`}
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-6 min-h-[500px]">
+            {/* Note list / Grid */}
+            <div className={`${isEditing ? "hidden lg:block lg:w-[320px] shrink-0" : "w-full"}`}>
+              {filteredNotes.length > 0 ? (
+                <div className={`${isEditing ? "space-y-2" : "columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4"}`}>
+                  {filteredNotes.map((note) => (
+                    <div
+                      key={note.id}
+                      onClick={() => openNote(note)}
+                      className={`break-inside-avoid cursor-pointer rounded-xl border p-4 transition-all duration-200 group
+                        ${activeNote?.id === note.id
+                          ? "bg-primary/5 border-primary/30 shadow-md"
+                          : "bg-card border-border/50 hover:border-primary/20 hover:shadow-lg hover:-translate-y-0.5"
+                        }`}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h3 className="text-sm font-semibold text-card-foreground line-clamp-1">
+                          {note.title || "Untitled"}
+                        </h3>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {note.is_pinned && <Pin className="h-3 w-3 text-accent" />}
+                          <Button
+                            variant="ghost" size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive"
+                            onClick={(e) => { e.stopPropagation(); deleteNote(note.id); if (activeNote?.id === note.id) { setActiveNote(null); setIsCreating(false); } }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed mb-2">
+                        {getPreview(note.content) || "Empty note"}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-wrap gap-1">
+                          {note.tags.slice(0, 3).map((tag) => (
+                            <span key={tag} className={`text-[10px] px-1.5 py-0.5 rounded-full border font-medium ${getTagColor(tag)}`}>
+                              #{tag}
+                            </span>
+                          ))}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(note.updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16 text-muted-foreground text-sm">
+                  <FileText className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                  {search || filterTag ? "No notes match your search" : "No notes yet. Create your first one!"}
+                </div>
+              )}
+            </div>
+
+            {/* Editor pane */}
+            {isEditing && (
+              <div className="flex-1 min-w-0">
+                <Card className="card-elevated h-full">
+                  <CardContent className="p-5 space-y-4 h-full flex flex-col">
+                    {/* Back button (mobile) + pin */}
+                    <div className="flex items-center justify-between">
+                      <Button
+                        variant="ghost" size="sm"
+                        className="lg:hidden gap-1 text-xs text-muted-foreground"
+                        onClick={() => { handleSave(); setActiveNote(null); setIsCreating(false); }}
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" /> Back
+                      </Button>
+                      <div className="flex items-center gap-2 ml-auto">
+                        {activeNote && (
+                          <Button
+                            variant="ghost" size="icon" className="h-8 w-8"
+                            onClick={() => {
+                              updateNote(activeNote.id, { is_pinned: !activeNote.is_pinned });
+                              setActiveNote({ ...activeNote, is_pinned: !activeNote.is_pinned });
+                            }}
+                            title={activeNote.is_pinned ? "Unpin" : "Pin to top"}
+                          >
+                            {activeNote.is_pinned
+                              ? <PinOff className="h-4 w-4 text-accent" />
+                              : <Pin className="h-4 w-4 text-muted-foreground" />}
+                          </Button>
+                        )}
+                        {isCreating && (
+                          <Button size="sm" className="h-8 text-xs gap-1" onClick={handleSave}>
+                            <Check className="h-3.5 w-3.5" /> Save
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Title */}
+                    <Input
+                      placeholder="Note title..."
+                      className="text-lg font-bold border-none bg-transparent px-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                    />
+
+                    {/* Tags */}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {editTags.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="outline"
+                          className={`text-[10px] cursor-pointer ${getTagColor(tag)}`}
+                          onClick={() => removeTag(tag)}
+                        >
+                          #{tag} <X className="h-2.5 w-2.5 ml-1" />
+                        </Badge>
+                      ))}
+                      <div className="flex items-center gap-1">
+                        <Tag className="h-3 w-3 text-muted-foreground" />
+                        <input
+                          placeholder="add tag..."
+                          className="bg-transparent border-none outline-none text-xs text-muted-foreground w-20"
+                          value={newTag}
+                          onChange={(e) => setNewTag(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTagToNote(); } }}
+                          onBlur={() => { if (newTag) addTagToNote(); }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Toolbar */}
+                    <div className="flex items-center gap-0.5 border-b border-border/50 pb-2">
+                      {[
+                        { action: "bold", icon: Bold, label: "Bold" },
+                        { action: "italic", icon: Italic, label: "Italic" },
+                        { action: "h1", icon: Heading1, label: "H1" },
+                        { action: "h2", icon: Heading2, label: "H2" },
+                        { action: "ul", icon: List, label: "Bullet" },
+                        { action: "ol", icon: ListOrdered, label: "Number" },
+                        { action: "code", icon: Code, label: "Code" },
+                      ].map((tool) => (
+                        <Button
+                          key={tool.action}
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-card-foreground"
+                          onClick={() => handleToolbar(tool.action)}
+                          title={tool.label}
+                        >
+                          <tool.icon className="h-3.5 w-3.5" />
+                        </Button>
+                      ))}
+                    </div>
+
+                    {/* Editor */}
+                    <Textarea
+                      ref={editorRef}
+                      placeholder="Start writing... (supports Markdown: **bold**, *italic*, # heading, - list, ```code```)"
+                      className="flex-1 min-h-[300px] resize-none text-sm leading-relaxed font-mono bg-transparent border-none px-0 focus-visible:ring-0"
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                    />
+
+                    {/* Preview */}
+                    {editContent && (
+                      <div className="border-t border-border/50 pt-3">
+                        <p className="text-[10px] text-muted-foreground font-medium mb-2 uppercase tracking-wider">Preview</p>
+                        <div
+                          className="prose prose-sm prose-invert max-w-none text-sm text-card-foreground leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: renderMarkdown(editContent) }}
+                        />
+                      </div>
+                    )}
+
+                    <p className="text-[10px] text-muted-foreground">Auto-saved as you type</p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* =================== JOURNAL =================== */}
         <TabsContent value="journal" className="space-y-4">
           <Card className="card-elevated">
             <CardContent className="p-5 space-y-3">
@@ -120,6 +506,7 @@ export default function Notes() {
           )}
         </TabsContent>
 
+        {/* =================== BRAIN DUMP =================== */}
         <TabsContent value="braindump">
           <Card className="card-elevated">
             <CardHeader className="pb-3">
@@ -139,6 +526,7 @@ export default function Notes() {
           </Card>
         </TabsContent>
 
+        {/* =================== CHECKLISTS =================== */}
         <TabsContent value="checklists" className="space-y-4">
           <Card className="border-dashed border-2 border-border/50">
             <CardContent className="p-4 flex gap-2">
