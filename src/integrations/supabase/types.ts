@@ -179,29 +179,41 @@ export type Database = {
         Row: {
           created_at: string
           date: string
+          energy: string | null
           habits: Json
           id: string
           mood: string | null
+          sleep_hours: number | null
+          sleep_quality: string | null
           user_id: string
           water: number
+          workout_note: string | null
         }
         Insert: {
           created_at?: string
           date?: string
+          energy?: string | null
           habits?: Json
           id?: string
           mood?: string | null
+          sleep_hours?: number | null
+          sleep_quality?: string | null
           user_id: string
           water?: number
+          workout_note?: string | null
         }
         Update: {
           created_at?: string
           date?: string
+          energy?: string | null
           habits?: Json
           id?: string
           mood?: string | null
+          sleep_hours?: number | null
+          sleep_quality?: string | null
           user_id?: string
           water?: number
+          workout_note?: string | null
         }
         Relationships: []
       }
