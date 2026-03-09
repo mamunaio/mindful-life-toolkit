@@ -21,6 +21,10 @@ export interface Project {
   deadline: string | null;
   completion_percent: number;
   completion_notes: string | null;
+  priority: string;
+  project_links: { label: string; url: string }[];
+  estimated_hours: number | null;
+  time_spent: number;
   created_at: string;
 }
 
