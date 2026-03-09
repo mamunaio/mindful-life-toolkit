@@ -1,6 +1,5 @@
-import { LayoutDashboard, CheckSquare, Wallet, Heart, BookOpen, Briefcase, Settings, Sun, Moon, LogOut, ChevronRight } from "lucide-react";
+import { LayoutDashboard, CheckSquare, Wallet, Heart, BookOpen, Briefcase, Settings, Sun, Moon, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
 import { useTheme } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -42,7 +41,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <div className="px-4 pt-5 pb-3">
+        <div className="px-4 pt-5 pb-4">
           {!collapsed ? (
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center shadow-glow">
@@ -58,7 +57,11 @@ export function AppSidebar() {
         </div>
 
         <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground/60 px-3 mb-1">Workspace</SidebarGroupLabel>}
+          {!collapsed && (
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.1em] font-semibold text-muted-foreground/50 px-3 mb-1">
+              Workspace
+            </SidebarGroupLabel>
+          )}
           <SidebarGroupContent>
             <SidebarMenu>
               {mainItems.map((item) => (
@@ -67,11 +70,11 @@ export function AppSidebar() {
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
-                      className="hover:bg-sidebar-accent/50 transition-all duration-150 rounded-lg"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-sm"
+                      className="hover:bg-sidebar-accent/60 transition-all duration-150 rounded-lg text-sidebar-foreground"
+                      activeClassName="sidebar-active-indicator bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                     >
-                      <item.icon className="mr-2.5 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
+                      <item.icon className="mr-2.5 h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
+                      {!collapsed && <span className="text-[13px]">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -81,7 +84,11 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          {!collapsed && <SidebarGroupLabel className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground/60 px-3 mb-1">Life</SidebarGroupLabel>}
+          {!collapsed && (
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-[0.1em] font-semibold text-muted-foreground/50 px-3 mb-1">
+              Life
+            </SidebarGroupLabel>
+          )}
           <SidebarGroupContent>
             <SidebarMenu>
               {lifeItems.map((item) => (
@@ -89,11 +96,11 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      className="hover:bg-sidebar-accent/50 transition-all duration-150 rounded-lg"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-sm"
+                      className="hover:bg-sidebar-accent/60 transition-all duration-150 rounded-lg text-sidebar-foreground"
+                      activeClassName="sidebar-active-indicator bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                     >
-                      <item.icon className="mr-2.5 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
+                      <item.icon className="mr-2.5 h-[18px] w-[18px] shrink-0" strokeWidth={1.75} />
+                      {!collapsed && <span className="text-[13px]">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -104,37 +111,37 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="pb-4">
-        <SidebarSeparator />
+        <SidebarSeparator className="opacity-50" />
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <NavLink
                 to="/settings"
-                className="hover:bg-sidebar-accent/50 transition-all duration-150 rounded-lg"
-                activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                className="hover:bg-sidebar-accent/60 transition-all duration-150 rounded-lg text-sidebar-foreground"
+                activeClassName="sidebar-active-indicator bg-sidebar-accent text-sidebar-accent-foreground font-medium"
               >
-                <Settings className="mr-2.5 h-4 w-4" />
-                {!collapsed && <span>Settings</span>}
+                <Settings className="mr-2.5 h-[18px] w-[18px]" strokeWidth={1.75} />
+                {!collapsed && <span className="text-[13px]">Settings</span>}
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={toggleTheme}>
-              {theme === "dark" ? <Sun className="h-4 w-4 mr-2.5" /> : <Moon className="h-4 w-4 mr-2.5" />}
-              {!collapsed && <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>}
+            <SidebarMenuButton onClick={toggleTheme} className="text-sidebar-foreground hover:bg-sidebar-accent/60">
+              {theme === "dark" ? <Sun className="h-[18px] w-[18px] mr-2.5" strokeWidth={1.75} /> : <Moon className="h-[18px] w-[18px] mr-2.5" strokeWidth={1.75} />}
+              {!collapsed && <span className="text-[13px]">{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
         {!collapsed && (
-          <div className="mx-2 mt-2 p-2.5 rounded-lg bg-muted/40 flex items-center gap-2.5">
-            <Avatar className="h-8 w-8 border border-border/50">
+          <div className="mx-2 mt-2 p-3 rounded-xl bg-muted/30 border border-border/30 flex items-center gap-2.5">
+            <Avatar className="h-8 w-8 border border-border/40">
               <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{initials}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-foreground truncate">{displayName || "User"}</p>
               <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
             </div>
-            <button onClick={signOut} className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground hover:text-foreground" title="Sign out">
+            <button onClick={signOut} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors text-muted-foreground hover:text-destructive" title="Sign out">
               <LogOut className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -142,8 +149,8 @@ export function AppSidebar() {
         {collapsed && (
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={signOut}>
-                <LogOut className="h-4 w-4 mr-2.5" />
+              <SidebarMenuButton onClick={signOut} className="text-sidebar-foreground hover:bg-sidebar-accent/60">
+                <LogOut className="h-[18px] w-[18px] mr-2.5" strokeWidth={1.75} />
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

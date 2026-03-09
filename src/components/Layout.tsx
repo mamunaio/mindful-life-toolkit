@@ -14,15 +14,15 @@ const PAGE_TITLES: Record<string, string> = {
 };
 
 const pageVariants = {
-  initial: { opacity: 0, y: 12 },
+  initial: { opacity: 0, y: 8 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
+  exit: { opacity: 0, y: -4 },
 };
 
 const pageTransition = {
   type: "tween" as const,
   ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number],
-  duration: 0.3,
+  duration: 0.25,
 };
 
 export function Layout() {
@@ -34,14 +34,14 @@ export function Layout() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center gap-3 border-b border-border/40 px-4 bg-card/50 backdrop-blur-sm sticky top-0 z-30">
-            <SidebarTrigger />
+          <header className="h-12 flex items-center gap-3 border-b border-border/30 px-5 bg-background/80 backdrop-blur-xl sticky top-0 z-30">
+            <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors" />
             <motion.span
               key={pageTitle}
-              initial={{ opacity: 0, x: -8 }}
+              initial={{ opacity: 0, x: -6 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="text-sm font-medium text-muted-foreground"
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="text-[13px] font-medium text-muted-foreground"
             >
               {pageTitle}
             </motion.span>
