@@ -1,33 +1,46 @@
 import { useState, useRef, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { useNotes } from "@/hooks/useNotes";
-import { Lightbulb } from "lucide-react";
+import { Send, Check } from "lucide-react";
+import { toast } from "sonner";
 
 export default function QuickBrainDump() {
   const { brainDump, setBrainDump } = useNotes();
   const [local, setLocal] = useState(brainDump);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => { setLocal(brainDump); }, [brainDump]);
 
-  const handleChange = (val: string) => {
-    setLocal(val);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setBrainDump(val), 800);
+  const handleSave = () => {
+    if (!local.trim()) return;
+    setBrainDump(local.trim());
+    setSaved(true);
+    toast.success("Saved to Notes!");
+    setTimeout(() => setSaved(false), 2000);
   };
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-1.5">
-        <Lightbulb className="h-3.5 w-3.5 text-warning" />
-        <span className="text-[10px] text-muted-foreground font-medium">Auto-saves</span>
-      </div>
       <Textarea
         value={local}
-        onChange={(e) => handleChange(e.target.value)}
+        onChange={(e) => { setLocal(e.target.value); setSaved(false); }}
         placeholder="Quick thought, idea, or reminder..."
-        className="min-h-[72px] max-h-[120px] resize-none text-sm bg-muted/30 border-border/50"
+        className="min-h-[68px] max-h-[110px] resize-none text-sm bg-muted/30 border-border/50"
+        onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSave(); }}
       />
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-muted-foreground">⌘+Enter to save</span>
+        <Button
+          size="sm"
+          className="h-7 text-xs gap-1.5 px-3"
+          onClick={handleSave}
+          disabled={!local.trim() || saved}
+          variant={saved ? "outline" : "default"}
+        >
+          {saved ? <><Check className="h-3 w-3" /> Saved</> : <><Send className="h-3 w-3" /> Save to Notes</>}
+        </Button>
+      </div>
     </div>
   );
 }
