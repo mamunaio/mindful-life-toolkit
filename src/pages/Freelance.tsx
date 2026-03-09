@@ -582,20 +582,50 @@ function ProjectsTab({ projects, clients, projectNotes, payments, invoices, addP
         <div className="flex-1" />
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild><Button className="gap-1 h-8 text-xs"><Plus className="h-3.5 w-3.5" /> Add Project</Button></DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle className="font-display">New Project</DialogTitle></DialogHeader>
             <div className="space-y-3 pt-2">
               <div className="space-y-1"><Label className="text-xs font-medium">Name *</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Project name" /></div>
-              <div className="space-y-1">
-                <Label className="text-xs font-medium">Client</Label>
-                <Select value={clientId} onValueChange={setClientId}>
-                  <SelectTrigger><SelectValue placeholder="Select client (optional)" /></SelectTrigger>
-                  <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Client</Label>
+                  <Select value={clientId} onValueChange={setClientId}>
+                    <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
+                    <SelectContent>{clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Priority</Label>
+                  <Select value={priority} onValueChange={setPriority}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="high">🔴 High</SelectItem>
+                      <SelectItem value="medium">🟡 Medium</SelectItem>
+                      <SelectItem value="low">🟢 Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-1"><Label className="text-xs font-medium">Budget</Label><Input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="0.00" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label className="text-xs font-medium">Budget</Label><Input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="0.00" /></div>
+                <div className="space-y-1"><Label className="text-xs font-medium">Estimated Hours</Label><Input type="number" value={estimatedHours} onChange={(e) => setEstimatedHours(e.target.value)} placeholder="0" /></div>
+              </div>
               <div className="space-y-1"><Label className="text-xs font-medium">Deadline</Label><Input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} /></div>
               <div className="space-y-1"><Label className="text-xs font-medium">Description</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Project details..." /></div>
+              {/* Project Links */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium flex items-center gap-1"><Link2 className="h-3 w-3" /> Important Links</Label>
+                {projectLinks.map((l, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input value={l.label} onChange={(e) => { const nl = [...projectLinks]; nl[i] = { ...nl[i], label: e.target.value }; setProjectLinks(nl); }} placeholder="Label (e.g. Figma)" className="w-28" />
+                    <Input value={l.url} onChange={(e) => { const nl = [...projectLinks]; nl[i] = { ...nl[i], url: e.target.value }; setProjectLinks(nl); }} placeholder="https://..." className="flex-1" />
+                    <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 hover:text-destructive" onClick={() => setProjectLinks(projectLinks.filter((_, idx) => idx !== i))}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => setProjectLinks([...projectLinks, { label: "", url: "" }])} className="text-xs">+ Add Link</Button>
+              </div>
               <Button className="w-full" onClick={handleAdd} disabled={!name.trim()}>Add Project</Button>
             </div>
           </DialogContent>
