@@ -58,6 +58,7 @@ export function useTimeTracking() {
           client_id: params.client_id || null,
           description: params.description || null,
           is_running: true,
+          is_billable: params.is_billable !== false,
           start_time: new Date().toISOString(),
         } as any);
       if (error) throw error;
