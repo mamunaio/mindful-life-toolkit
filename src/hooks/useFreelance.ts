@@ -21,6 +21,10 @@ export interface Project {
   deadline: string | null;
   completion_percent: number;
   completion_notes: string | null;
+  priority: string;
+  project_links: { label: string; url: string }[];
+  estimated_hours: number | null;
+  time_spent: number;
   created_at: string;
 }
 
@@ -94,7 +98,10 @@ export function useFreelance() {
     queryFn: async () => {
       const { data, error } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Project[];
+      return (data as unknown as Project[]).map(p => ({
+        ...p,
+        project_links: Array.isArray(p.project_links) ? p.project_links : [],
+      }));
     },
   });
 
@@ -107,7 +114,7 @@ export function useFreelance() {
   });
 
   const updateProject = useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; status?: string; name?: string; description?: string | null; budget?: number | null; deadline?: string | null; client_id?: string | null; completion_percent?: number; completion_notes?: string | null }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; status?: string; name?: string; description?: string | null; budget?: number | null; deadline?: string | null; client_id?: string | null; completion_percent?: number; completion_notes?: string | null; priority?: string; project_links?: any; estimated_hours?: number | null; time_spent?: number }) => {
       const { error } = await supabase.from("projects").update(updates).eq("id", id);
       if (error) throw error;
     },
@@ -237,7 +244,7 @@ export function useFreelance() {
   return {
     clients, addClient: (c: Omit<Client, "id" | "created_at">) => addClient.mutate(c), deleteClient: (id: string) => deleteClient.mutate(id),
     projects, addProject: (p: Omit<Project, "id" | "created_at">) => addProject.mutate(p),
-    updateProject: (id: string, u: { status?: string; name?: string; description?: string | null; budget?: number | null; deadline?: string | null; client_id?: string | null; completion_percent?: number; completion_notes?: string | null }) => updateProject.mutate({ id, ...u }),
+    updateProject: (id: string, u: { status?: string; name?: string; description?: string | null; budget?: number | null; deadline?: string | null; client_id?: string | null; completion_percent?: number; completion_notes?: string | null; priority?: string; project_links?: any; estimated_hours?: number | null; time_spent?: number }) => updateProject.mutate({ id, ...u }),
     deleteProject: (id: string) => deleteProject.mutate(id),
     projectNotes, addProjectNote: (n: { project_id: string; content: string }) => addProjectNote.mutate(n), deleteProjectNote: (id: string) => deleteProjectNote.mutate(id),
     payments, addPayment: (p: Omit<Payment, "id">) => addPayment.mutate(p), updatePayment: (id: string, u: { status?: string }) => updatePayment.mutate({ id, ...u }), deletePayment: (id: string) => deletePayment.mutate(id),

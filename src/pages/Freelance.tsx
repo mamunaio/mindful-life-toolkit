@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, DollarSign, CheckCircle, Clock, AlertCircle, FileDown, FileText, Timer, FileCheck, BarChart3, Pencil, MessageSquare, X, StickyNote, Target, AlertTriangle, Zap, PieChart, FileText as InvoiceIcon } from "lucide-react";
+import { Users, FolderKanban, CreditCard, ArrowDownToLine, Receipt, Plus, Trash2, TrendingUp, DollarSign, CheckCircle, Clock, AlertCircle, FileDown, FileText, Timer, FileCheck, BarChart3, Pencil, MessageSquare, X, StickyNote, Target, AlertTriangle, Zap, PieChart, ExternalLink, Link2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -280,6 +280,7 @@ export default function Freelance() {
           <ProjectsTab
             projects={projects} clients={clients}
             projectNotes={projectNotes}
+            payments={payments} invoices={invoices}
             addProject={addProject} updateProject={updateProject}
             deleteProject={deleteProject}
             onStatusChange={handleProjectStatusChange}
