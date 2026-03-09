@@ -293,7 +293,13 @@ export default function Freelance() {
             onCreateInvoice={(prefill: any) => { setInvoicePrefill(prefill); setInvoiceOpen(true); }} />
         </TabsContent>
         <TabsContent value="invoices">
-          <InvoicesTab invoices={invoices} clients={clients} settings={settings} deleteInvoice={deleteInvoice} onNewInvoice={() => { setInvoicePrefill(null); setInvoiceOpen(true); }} />
+          <InvoicesTab
+            invoices={invoices} clients={clients} settings={settings}
+            deleteInvoice={deleteInvoice} updateInvoice={updateInvoice}
+            onNewInvoice={() => { setInvoicePrefill(null); setInvoiceOpen(true); }}
+            addPayment={addPayment} payments={payments} projects={projects}
+            handlePaymentStatusChange={handlePaymentStatusChange}
+          />
         </TabsContent>
         <TabsContent value="withdrawals"><WithdrawalsTab withdrawals={withdrawals} addWithdrawal={addWithdrawal} deleteWithdrawal={deleteWithdrawal} /></TabsContent>
         <TabsContent value="expenses"><ExpensesTab expenses={expenses} addExpense={addExpense} deleteExpense={deleteExpense} /></TabsContent>
