@@ -451,8 +451,8 @@ function ClientsTab({ clients, addClient, deleteClient, payments, projects, onCr
   );
 }
 
-/* ==================== PROJECTS TAB (fully editable) ==================== */
-function ProjectsTab({ projects, clients, projectNotes, addProject, updateProject, deleteProject, onStatusChange, addProjectNote, deleteProjectNote }: any) {
+/* ==================== PROJECTS TAB (agency-grade) ==================== */
+function ProjectsTab({ projects, clients, projectNotes, payments, invoices, addProject, updateProject, deleteProject, onStatusChange, addProjectNote, deleteProjectNote }: any) {
   const [addOpen, setAddOpen] = useState(false);
   const [editProject, setEditProject] = useState<any>(null);
   const [detailProject, setDetailProject] = useState<any>(null);
@@ -464,6 +464,9 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
   const [description, setDescription] = useState("");
   const [budget, setBudget] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [priority, setPriority] = useState("medium");
+  const [estimatedHours, setEstimatedHours] = useState("");
+  const [projectLinks, setProjectLinks] = useState<{ label: string; url: string }[]>([]);
   const [editName, setEditName] = useState("");
   const [editClientId, setEditClientId] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -471,12 +474,43 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
   const [editDeadline, setEditDeadline] = useState("");
   const [editPercent, setEditPercent] = useState(0);
   const [editCompletionNotes, setEditCompletionNotes] = useState("");
+  const [editPriority, setEditPriority] = useState("medium");
+  const [editEstimatedHours, setEditEstimatedHours] = useState("");
+  const [editTimeSpent, setEditTimeSpent] = useState("");
+  const [editLinks, setEditLinks] = useState<{ label: string; url: string }[]>([]);
   const [noteText, setNoteText] = useState("");
+
+  const PRIORITY_COLORS: Record<string, string> = {
+    high: "bg-destructive",
+    medium: "bg-warning",
+    low: "bg-success",
+  };
+
+  const getPaymentStatus = (projectId: string) => {
+    const projectPayments = (payments || []).filter((p: any) => p.project_id === projectId);
+    const projectInvoices = (invoices || []).filter((i: any) => i.project_id === projectId);
+    const totalPaid = projectPayments.filter((p: any) => p.status === "paid").reduce((s: number, p: any) => s + p.amount, 0);
+    const totalInvoiced = projectInvoices.reduce((s: number, i: any) => s + i.total, 0);
+    const project = projects.find((p: any) => p.id === projectId);
+    const budget = project?.budget || 0;
+    if (totalPaid >= budget && budget > 0) return { label: "Paid", style: "bg-success/10 text-success border-success/20" };
+    if (totalPaid > 0) return { label: "Partial", style: "bg-warning/10 text-warning border-warning/20" };
+    if (totalInvoiced > 0) return { label: "Invoiced", style: "bg-primary/10 text-primary border-primary/20" };
+    return { label: "Unbilled", style: "bg-muted text-muted-foreground border-border" };
+  };
 
   const handleAdd = () => {
     if (!name.trim()) return;
-    addProject({ name: name.trim(), client_id: clientId || null, description: description || null, status: "active", budget: budget ? parseFloat(budget) : null, deadline: deadline || null, completion_percent: 0, completion_notes: null });
-    setName(""); setClientId(""); setDescription(""); setBudget(""); setDeadline(""); setAddOpen(false);
+    addProject({
+      name: name.trim(), client_id: clientId || null, description: description || null,
+      status: "active", budget: budget ? parseFloat(budget) : null, deadline: deadline || null,
+      completion_percent: 0, completion_notes: null, priority,
+      estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
+      project_links: projectLinks.filter(l => l.url.trim()),
+      time_spent: 0,
+    });
+    setName(""); setClientId(""); setDescription(""); setBudget(""); setDeadline("");
+    setPriority("medium"); setEstimatedHours(""); setProjectLinks([]); setAddOpen(false);
   };
 
   const openEdit = (p: any) => {
@@ -488,6 +522,10 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
     setEditDeadline(p.deadline || "");
     setEditPercent(p.completion_percent || 0);
     setEditCompletionNotes(p.completion_notes || "");
+    setEditPriority(p.priority || "medium");
+    setEditEstimatedHours(p.estimated_hours ? String(p.estimated_hours) : "");
+    setEditTimeSpent(p.time_spent ? String(p.time_spent) : "0");
+    setEditLinks(Array.isArray(p.project_links) ? [...p.project_links] : []);
   };
 
   const handleSaveEdit = () => {
@@ -498,6 +536,10 @@ function ProjectsTab({ projects, clients, projectNotes, addProject, updateProjec
       name: editName.trim(), client_id: editClientId || null, description: editDescription || null,
       budget: editBudget ? parseFloat(editBudget) : null, deadline: editDeadline || null,
       completion_percent: editPercent, completion_notes: editCompletionNotes || null, status: newStatus,
+      priority: editPriority,
+      estimated_hours: editEstimatedHours ? parseFloat(editEstimatedHours) : null,
+      time_spent: editTimeSpent ? parseFloat(editTimeSpent) : 0,
+      project_links: editLinks.filter(l => l.url.trim()),
     });
     if (wasCompleted) onStatusChange(editProject.id, "completed");
     toast.success("Project updated!");
