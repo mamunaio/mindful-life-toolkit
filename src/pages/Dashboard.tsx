@@ -1,4 +1,4 @@
-import { CheckSquare, Wallet, ArrowRight, TrendingUp, TrendingDown, Calendar, Flame, Droplets, Target, Briefcase } from "lucide-react";
+import { CheckSquare, Wallet, ArrowRight, TrendingUp, TrendingDown, Calendar, Flame, Droplets, Target, Briefcase, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -11,6 +11,7 @@ import { useFreelance } from "@/hooks/useFreelance";
 import ProductivityRing from "@/components/dashboard/ProductivityRing";
 import CompactPomodoro from "@/components/dashboard/CompactPomodoro";
 import QuickBrainDump from "@/components/dashboard/QuickBrainDump";
+import TodaySchedule from "@/components/dashboard/TodaySchedule";
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -60,7 +61,6 @@ export default function Dashboard() {
     return d.getMonth() === month && d.getFullYear() === year && p.status === "paid";
   });
   const freelanceIncome = monthPayments.reduce((s, p) => s + p.amount, 0);
-  const monthWithdrawals = withdrawals.filter((w) => { const d = new Date(w.date); return d.getMonth() === month && d.getFullYear() === year; });
   const monthExpenses = expenses.filter((e) => { const d = new Date(e.date); return d.getMonth() === month && d.getFullYear() === year; });
   const freelanceExpenses = monthExpenses.reduce((s, e) => s + e.amount, 0);
   const freelanceNet = freelanceIncome - freelanceExpenses;
@@ -70,7 +70,7 @@ export default function Dashboard() {
   const habitsTotal = DEFAULT_HABITS.length;
   const waterPercent = Math.min((today.water / 2000) * 100, 100);
 
-  // Productivity score (tasks done ratio + habits ratio, averaged)
+  // Productivity score
   const totalTasks = todoCount + inProgressCount + doneCount;
   const taskScore = totalTasks > 0 ? (doneCount / totalTasks) * 100 : 0;
   const habitScore = habitsTotal > 0 ? (habitsCompleted / habitsTotal) * 100 : 0;
@@ -91,9 +91,48 @@ export default function Dashboard() {
             {greeting}
           </h1>
         </div>
-        <div className="hidden md:block">
+        {/* Productivity + Task Stats grouped */}
+        <div className="hidden md:flex items-center gap-5">
+          <div className="flex gap-4 text-center">
+            <div>
+              <p className="text-lg font-bold font-display text-foreground">{todoCount + inProgressCount}</p>
+              <p className="text-[10px] text-muted-foreground">Active</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold font-display text-success">{doneCount}</p>
+              <p className="text-[10px] text-muted-foreground">Done</p>
+            </div>
+            <div>
+              <p className={`text-lg font-bold font-display ${overdueTasks.length > 0 ? "text-destructive" : "text-muted-foreground"}`}>{overdueTasks.length}</p>
+              <p className="text-[10px] text-muted-foreground">Overdue</p>
+            </div>
+          </div>
+          <div className="w-px h-10 bg-border/50" />
           <ProductivityRing percent={productivityScore} label="Today" />
         </div>
+      </div>
+
+      {/* Mobile: Productivity + Stats */}
+      <div className="md:hidden">
+        <Card className="card-elevated">
+          <CardContent className="p-4 flex items-center gap-4">
+            <ProductivityRing percent={productivityScore} size={72} strokeWidth={6} label="Today" />
+            <div className="flex gap-5 flex-1">
+              <div className="text-center">
+                <p className="text-lg font-bold font-display text-foreground">{todoCount + inProgressCount}</p>
+                <p className="text-[10px] text-muted-foreground">Active</p>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-bold font-display text-success">{doneCount}</p>
+                <p className="text-[10px] text-muted-foreground">Done</p>
+              </div>
+              <div className="text-center">
+                <p className={`text-lg font-bold font-display ${overdueTasks.length > 0 ? "text-destructive" : "text-muted-foreground"}`}>{overdueTasks.length}</p>
+                <p className="text-[10px] text-muted-foreground">Overdue</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* ── Row 1: Priorities + Pomodoro ── */}
@@ -113,8 +152,8 @@ export default function Dashboard() {
 
             {overdueTasks.length > 0 && (
               <div className="mb-2 px-2.5 py-1.5 rounded-md bg-destructive/8 border border-destructive/15">
-                <p className="text-[11px] font-medium text-destructive">
-                  ⚠ {overdueTasks.length} overdue task{overdueTasks.length > 1 ? "s" : ""}
+                <p className="text-[11px] font-medium text-destructive flex items-center gap-1.5">
+                  <AlertTriangle className="h-3 w-3" /> {overdueTasks.length} overdue task{overdueTasks.length > 1 ? "s" : ""}
                 </p>
               </div>
             )}
@@ -160,8 +199,15 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* ── Row 2: Finance + Brain Dump + Productivity ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* ── Row 2: Schedule + Finance + Brain Dump ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Today's Schedule */}
+        <Card className="card-elevated">
+          <CardContent className="p-4">
+            <TodaySchedule />
+          </CardContent>
+        </Card>
+
         {/* Personal Finance */}
         <Card className="card-elevated">
           <CardContent className="p-4">
@@ -185,14 +231,14 @@ export default function Dashboard() {
               <div className="pt-1.5 border-t border-border/40 flex justify-between text-xs">
                 <span className="font-medium text-foreground">Balance</span>
                 <span className={`font-bold ${personalBalance >= 0 ? "text-success" : "text-destructive"}`}>
-                  {personalBalance >= 0 ? "+" : ""}${Math.abs(personalBalance).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                  {personalBalance >= 0 ? "+" : "-"}${Math.abs(personalBalance).toLocaleString("en-US", { maximumFractionDigits: 0 })}
                 </span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Freelance Finance */}
+        {/* Freelance Finance — FIXED negative display */}
         <Card className="card-elevated">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
@@ -212,10 +258,13 @@ export default function Dashboard() {
                 <span className="text-muted-foreground">Expenses</span>
                 <span className="font-semibold text-destructive">${freelanceExpenses.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
               </div>
-              <div className="pt-1.5 border-t border-border/40 flex justify-between text-xs">
-                <span className="font-medium text-foreground">Net Profit</span>
+              <div className="pt-1.5 border-t border-border/40 flex justify-between items-center text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-medium text-foreground">{freelanceNet >= 0 ? "Net Profit" : "Deficit"}</span>
+                  {freelanceNet < 0 && <AlertTriangle className="h-3 w-3 text-destructive" />}
+                </div>
                 <span className={`font-bold ${freelanceNet >= 0 ? "text-success" : "text-destructive"}`}>
-                  {freelanceNet >= 0 ? "+" : ""}${Math.abs(freelanceNet).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                  {freelanceNet >= 0 ? "+" : "-"}${Math.abs(freelanceNet).toLocaleString("en-US", { maximumFractionDigits: 0 })}
                 </span>
               </div>
             </div>
@@ -231,7 +280,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* ── Row 3: Habits + Water + Productivity Score (mobile) ── */}
+      {/* ── Row 3: Habits + Water ── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Habits */}
         <Card className="card-elevated lg:col-span-3">
@@ -263,63 +312,29 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Water + Productivity */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Water */}
-          <Card className="card-elevated">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-sm font-semibold font-display text-foreground flex items-center gap-2">
-                  <Droplets className="h-4 w-4 text-info" /> Water
-                </h2>
-                <span className="text-xs font-medium text-muted-foreground">{today.water}ml / 2000ml</span>
-              </div>
-              <Progress value={waterPercent} className="h-2 [&>div]:bg-info" />
-              <div className="flex gap-1 mt-2.5">
-                {Array.from({ length: 8 }).map((_, i) => {
-                  const filled = today.water >= (i + 1) * 250;
-                  return (
-                    <div
-                      key={i}
-                      className={`flex-1 h-5 rounded-sm transition-colors ${filled ? "bg-info/30" : "bg-muted/40"}`}
-                    />
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Productivity Score — mobile */}
-          <Card className="card-elevated md:hidden">
-            <CardContent className="p-4 flex items-center gap-4">
-              <ProductivityRing percent={productivityScore} size={72} strokeWidth={6} label="Today" />
-              <div>
-                <p className="text-sm font-semibold font-display text-foreground">Productivity</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{doneCount} tasks done · {habitsCompleted} habits</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Stats */}
-          <Card className="card-elevated">
-            <CardContent className="p-4">
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <p className="text-lg font-bold font-display text-foreground">{todoCount + inProgressCount}</p>
-                  <p className="text-[10px] text-muted-foreground">Active</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold font-display text-success">{doneCount}</p>
-                  <p className="text-[10px] text-muted-foreground">Done</p>
-                </div>
-                <div>
-                  <p className="text-lg font-bold font-display text-destructive">{overdueTasks.length}</p>
-                  <p className="text-[10px] text-muted-foreground">Overdue</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Water */}
+        <Card className="card-elevated lg:col-span-2">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-semibold font-display text-foreground flex items-center gap-2">
+                <Droplets className="h-4 w-4 text-info" /> Water
+              </h2>
+              <span className="text-xs font-medium text-muted-foreground">{today.water}ml / 2000ml</span>
+            </div>
+            <Progress value={waterPercent} className="h-2 [&>div]:bg-info" />
+            <div className="flex gap-1 mt-2.5">
+              {Array.from({ length: 8 }).map((_, i) => {
+                const filled = today.water >= (i + 1) * 250;
+                return (
+                  <div
+                    key={i}
+                    className={`flex-1 h-5 rounded-sm transition-colors ${filled ? "bg-info/30" : "bg-muted/40"}`}
+                  />
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
