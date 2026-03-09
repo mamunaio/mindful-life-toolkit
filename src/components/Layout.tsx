@@ -25,7 +25,7 @@ const pageTransition = {
   duration: 0.25,
 };
 
-export function Layout() {
+export function Layout() { // layout root
   const location = useLocation();
   const pageTitle = PAGE_TITLES[location.pathname] || "";
 
