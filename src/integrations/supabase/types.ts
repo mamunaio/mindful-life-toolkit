@@ -689,6 +689,39 @@ export type Database = {
           },
         ]
       }
+      schedule_events: {
+        Row: {
+          color: string
+          created_at: string
+          end_time: string | null
+          event_date: string
+          id: string
+          start_time: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          end_time?: string | null
+          event_date?: string
+          id?: string
+          start_time: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          end_time?: string | null
+          event_date?: string
+          id?: string
+          start_time?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subtasks: {
         Row: {
           created_at: string
