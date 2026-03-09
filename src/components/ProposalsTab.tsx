@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileCheck, Plus, Trash2, ArrowRightCircle, Send, Eye } from "lucide-react";
+import { FileCheck, Plus, Trash2, ArrowRightCircle, Send, Eye, Link2, Bold, Italic } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProposals, type Proposal } from "@/hooks/useProposals";
 import { useToast } from "@/hooks/use-toast";
 
@@ -32,6 +31,58 @@ interface Props {
   addProject: (p: any) => void;
 }
 
+/* Simple rich text toolbar helper */
+function RichTextArea({ value, onChange, placeholder, rows = 3 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
+  const wrapSelection = (tag: string) => {
+    const el = document.activeElement as HTMLTextAreaElement;
+    if (!el || el.tagName !== "TEXTAREA") return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const selected = value.substring(start, end);
+    const before = value.substring(0, start);
+    const after = value.substring(end);
+    if (tag === "bold") {
+      onChange(`${before}**${selected}**${after}`);
+    } else if (tag === "italic") {
+      onChange(`${before}_${selected}_${after}`);
+    }
+  };
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1 mb-1">
+        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => wrapSelection("bold")} title="Bold (**text**)">
+          <Bold className="h-3 w-3" />
+        </Button>
+        <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => wrapSelection("italic")} title="Italic (_text_)">
+          <Italic className="h-3 w-3" />
+        </Button>
+        <span className="text-[9px] text-muted-foreground ml-1">Use **bold** and _italic_ markdown</span>
+      </div>
+      <Textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows} />
+    </div>
+  );
+}
+
+/* Render markdown-style text */
+function RichText({ text }: { text: string }) {
+  // Simple bold/italic rendering
+  const parts = text.split(/(\*\*.*?\*\*|_.*?_)/g);
+  return (
+    <span>
+      {parts.map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          return <strong key={i}>{part.slice(2, -2)}</strong>;
+        }
+        if (part.startsWith("_") && part.endsWith("_") && part.length > 2) {
+          return <em key={i}>{part.slice(1, -1)}</em>;
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </span>
+  );
+}
+
 export default function ProposalsTab({ clients, projects, addProject }: Props) {
   const { proposals, addProposal, updateProposal, deleteProposal, convertToProject } = useProposals();
   const { toast } = useToast();
@@ -50,11 +101,14 @@ export default function ProposalsTab({ clients, projects, addProject }: Props) {
   const [totalAmount, setTotalAmount] = useState("");
   const [validUntil, setValidUntil] = useState("");
   const [notes, setNotes] = useState("");
+  const [jobSourceUrl, setJobSourceUrl] = useState("");
+  const [portfolioLinks, setPortfolioLinks] = useState<string[]>([""]);
 
   const resetForm = () => {
     setTitle(""); setType("proposal"); setClientId(""); setTemplate("standard");
     setScope(""); setDeliverables([""]); setTimeline(""); setPaymentTerms("");
-    setTotalAmount(""); setValidUntil(""); setNotes("");
+    setTotalAmount(""); setValidUntil(""); setNotes(""); setJobSourceUrl("");
+    setPortfolioLinks([""]);
   };
 
   const handleCreate = async () => {
@@ -74,7 +128,9 @@ export default function ProposalsTab({ clients, projects, addProject }: Props) {
         total_amount: totalAmount ? parseFloat(totalAmount) : null,
         valid_until: validUntil || null,
         notes: notes || null,
-      });
+        job_source_url: jobSourceUrl || null,
+        portfolio_links: portfolioLinks.filter(l => l.trim()).map(l => l.trim()),
+      } as any);
       toast({ title: `${type === "contract" ? "Contract" : "Proposal"} created` });
       resetForm();
       setCreateOpen(false);
@@ -98,6 +154,12 @@ export default function ProposalsTab({ clients, projects, addProject }: Props) {
     const d = [...deliverables]; d[i] = v; setDeliverables(d);
   };
   const removeDeliverable = (i: number) => setDeliverables(deliverables.filter((_, idx) => idx !== i));
+
+  const addPortfolioLink = () => setPortfolioLinks([...portfolioLinks, ""]);
+  const updatePortfolioLink = (i: number, v: string) => {
+    const l = [...portfolioLinks]; l[i] = v; setPortfolioLinks(l);
+  };
+  const removePortfolioLink = (i: number) => setPortfolioLinks(portfolioLinks.filter((_, idx) => idx !== i));
 
   return (
     <div className="space-y-4">
@@ -147,9 +209,16 @@ export default function ProposalsTab({ clients, projects, addProject }: Props) {
                 </div>
               </div>
 
+              {/* Job Source URL */}
+              <div className="space-y-1">
+                <Label className="flex items-center gap-1.5"><Link2 className="h-3 w-3" /> Job Source / URL</Label>
+                <Input value={jobSourceUrl} onChange={e => setJobSourceUrl(e.target.value)} placeholder="https://upwork.com/job/... or 'Referral from John'" />
+              </div>
+
+              {/* Scope with Rich Text */}
               <div className="space-y-1">
                 <Label>Scope of Work</Label>
-                <Textarea value={scope} onChange={e => setScope(e.target.value)} placeholder="Describe the work to be performed..." rows={3} />
+                <RichTextArea value={scope} onChange={setScope} placeholder="Describe the work to be performed..." rows={3} />
               </div>
 
               <div className="space-y-2">
@@ -189,9 +258,26 @@ export default function ProposalsTab({ clients, projects, addProject }: Props) {
                 </div>
               </div>
 
+              {/* Portfolio / Attachment Links */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5"><Link2 className="h-3 w-3" /> Portfolio / Attachment Links</Label>
+                {portfolioLinks.map((l, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input value={l} onChange={e => updatePortfolioLink(i, e.target.value)} placeholder="https://dribbble.com/shot/..." />
+                    {portfolioLinks.length > 1 && (
+                      <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removePortfolioLink(i)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={addPortfolioLink} className="text-xs">+ Add Link</Button>
+              </div>
+
+              {/* Notes with Rich Text */}
               <div className="space-y-1">
                 <Label>Notes</Label>
-                <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Additional notes or terms..." rows={2} />
+                <RichTextArea value={notes} onChange={setNotes} placeholder="Additional notes or terms..." rows={2} />
               </div>
 
               <Button className="w-full" onClick={handleCreate} disabled={!title.trim()}>
@@ -212,6 +298,8 @@ export default function ProposalsTab({ clients, projects, addProject }: Props) {
           {proposals.map((p) => {
             const client = clients.find((c: any) => c.id === p.client_id);
             const dels = Array.isArray(p.deliverables) ? p.deliverables : [];
+            const pLinks = (p as any).portfolio_links;
+            const linkCount = Array.isArray(pLinks) ? pLinks.length : 0;
             return (
               <Card key={p.id} className="group">
                 <CardContent className="p-4 flex items-center justify-between gap-3">
@@ -227,7 +315,8 @@ export default function ProposalsTab({ clients, projects, addProject }: Props) {
                         {p.total_amount ? ` · $${Number(p.total_amount).toFixed(0)}` : ""}
                         {p.timeline ? ` · ${p.timeline}` : ""}
                         {dels.length > 0 ? ` · ${dels.length} deliverable${dels.length > 1 ? "s" : ""}` : ""}
-                        {p.valid_until ? ` · Valid until ${p.valid_until}` : ""}
+                        {(p as any).job_source_url ? ` · Source: ${(p as any).job_source_url.substring(0, 30)}...` : ""}
+                        {linkCount > 0 ? ` · ${linkCount} link${linkCount > 1 ? "s" : ""}` : ""}
                       </p>
                     </div>
                   </div>
@@ -306,10 +395,26 @@ export default function ProposalsTab({ clients, projects, addProject }: Props) {
                   </div>
                 </div>
 
+                {/* Job Source */}
+                {(viewProposal as any).job_source_url && (
+                  <div>
+                    <p className="text-muted-foreground text-xs mb-1">Job Source</p>
+                    {(viewProposal as any).job_source_url.startsWith("http") ? (
+                      <a href={(viewProposal as any).job_source_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center gap-1">
+                        <Link2 className="h-3 w-3" /> {(viewProposal as any).job_source_url}
+                      </a>
+                    ) : (
+                      <p className="text-sm text-card-foreground">{(viewProposal as any).job_source_url}</p>
+                    )}
+                  </div>
+                )}
+
                 {viewProposal.scope && (
                   <div>
                     <p className="text-muted-foreground text-xs mb-1">Scope of Work</p>
-                    <p className="text-sm text-card-foreground whitespace-pre-wrap bg-muted/50 rounded-md p-3">{viewProposal.scope}</p>
+                    <div className="text-sm text-card-foreground whitespace-pre-wrap bg-muted/50 rounded-md p-3">
+                      <RichText text={viewProposal.scope} />
+                    </div>
                   </div>
                 )}
 
@@ -327,10 +432,30 @@ export default function ProposalsTab({ clients, projects, addProject }: Props) {
                   </div>
                 )}
 
+                {/* Portfolio Links */}
+                {(() => {
+                  const links = (viewProposal as any).portfolio_links;
+                  if (!Array.isArray(links) || links.length === 0) return null;
+                  return (
+                    <div>
+                      <p className="text-muted-foreground text-xs mb-1">Portfolio / Attachments</p>
+                      <div className="space-y-1">
+                        {links.map((link: string, i: number) => (
+                          <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-primary hover:underline">
+                            <Link2 className="h-3 w-3 shrink-0" /> {link}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {viewProposal.notes && (
                   <div>
                     <p className="text-muted-foreground text-xs mb-1">Notes</p>
-                    <p className="text-sm text-card-foreground whitespace-pre-wrap">{viewProposal.notes}</p>
+                    <div className="text-sm text-card-foreground whitespace-pre-wrap">
+                      <RichText text={viewProposal.notes} />
+                    </div>
                   </div>
                 )}
 
