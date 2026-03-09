@@ -175,13 +175,14 @@ export default function Settings() {
     try {
       const { data, error } = await supabase.from(table as any).select("*");
       if (error) throw error;
-      if (!data || data.length === 0) { toast.info(`No ${label} data to export`); setExporting(null); return; }
-      const headers = Object.keys(data[0] as Record<string, unknown>);
+      const rows = data as unknown as Record<string, unknown>[];
+      if (!rows || rows.length === 0) { toast.info(`No ${label} data to export`); setExporting(null); return; }
+      const headers = Object.keys(rows[0]);
       const csv = [
         headers.join(","),
-        ...data.map((row: Record<string, unknown>) =>
+        ...rows.map((row) =>
           headers.map((h) => {
-            const val = (row as Record<string, unknown>)[h];
+            const val = row[h];
             const str = val === null ? "" : String(val);
             return str.includes(",") || str.includes('"') ? `"${str.replace(/"/g, '""')}"` : str;
           }).join(",")
