@@ -1,4 +1,4 @@
-import { CheckSquare, Wallet, Heart, ArrowRight, TrendingUp, TrendingDown, Calendar, Clock, Flame } from "lucide-react";
+import { CheckSquare, Wallet, ArrowRight, TrendingUp, TrendingDown, Calendar, Flame, Droplets, Target, Briefcase } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -7,12 +7,16 @@ import { useAuth } from "@/hooks/useAuth";
 import { useHealth, DEFAULT_HABITS } from "@/hooks/useHealth";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useTasks } from "@/hooks/useTasks";
+import { useFreelance } from "@/hooks/useFreelance";
+import ProductivityRing from "@/components/dashboard/ProductivityRing";
+import CompactPomodoro from "@/components/dashboard/CompactPomodoro";
+import QuickBrainDump from "@/components/dashboard/QuickBrainDump";
 
 function getGreeting() {
-  const hour = new Date().getHours();
-  if (hour < 6) return "Good night";
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
+  const h = new Date().getHours();
+  if (h < 6) return "Good night";
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
   return "Good evening";
 }
 
@@ -21,205 +25,296 @@ export default function Dashboard() {
   const { displayName } = useAuth();
   const { tasks } = useTasks();
   const { transactions } = useTransactions();
-  const { today } = useHealth();
+  const { today, toggleHabit } = useHealth();
+  const { payments, withdrawals, expenses } = useFreelance();
 
   const now = new Date();
+  const todayStr = now.toISOString().split("T")[0];
+  const month = now.getMonth();
+  const year = now.getFullYear();
+
+  // Tasks
   const todoCount = tasks.filter((t) => t.column_id === "todo").length;
   const inProgressCount = tasks.filter((t) => t.column_id === "inprogress").length;
   const doneCount = tasks.filter((t) => t.column_id === "done").length;
-  const totalActive = todoCount + inProgressCount;
+  const overdueTasks = tasks.filter((t) => t.column_id !== "done" && t.due_date && t.due_date < todayStr);
 
-  // Overdue tasks
-  const todayStr = now.toISOString().split("T")[0];
-  const overdueTasks = tasks.filter(
-    (t) => t.column_id !== "done" && t.due_date && t.due_date < todayStr
-  );
+  // Top priorities (high priority, non-done, max 5)
+  const topPriorities = tasks
+    .filter((t) => t.column_id !== "done" && t.priority === "high")
+    .sort((a, b) => (a.due_date || "9999").localeCompare(b.due_date || "9999"))
+    .slice(0, 5);
 
-  // Top 3 priority tasks (non-done, sorted by priority then date)
-  const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
-  const topTasks = tasks
-    .filter((t) => t.column_id !== "done")
-    .sort((a, b) => (priorityOrder[a.priority] ?? 2) - (priorityOrder[b.priority] ?? 2))
-    .slice(0, 3);
-
-  // Finance
-  const month = now.getMonth();
-  const year = now.getFullYear();
+  // Personal finance
   const monthTx = transactions.filter((t) => {
     const d = new Date(t.date);
     return d.getMonth() === month && d.getFullYear() === year;
   });
-  const monthIncome = monthTx.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
-  const monthExpense = monthTx.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
-  const balance = monthIncome - monthExpense;
+  const personalIncome = monthTx.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
+  const personalExpense = monthTx.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+  const personalBalance = personalIncome - personalExpense;
+
+  // Freelance finance
+  const monthPayments = payments.filter((p) => {
+    const d = new Date(p.date);
+    return d.getMonth() === month && d.getFullYear() === year && p.status === "paid";
+  });
+  const freelanceIncome = monthPayments.reduce((s, p) => s + p.amount, 0);
+  const monthWithdrawals = withdrawals.filter((w) => { const d = new Date(w.date); return d.getMonth() === month && d.getFullYear() === year; });
+  const monthExpenses = expenses.filter((e) => { const d = new Date(e.date); return d.getMonth() === month && d.getFullYear() === year; });
+  const freelanceExpenses = monthExpenses.reduce((s, e) => s + e.amount, 0);
+  const freelanceNet = freelanceIncome - freelanceExpenses;
 
   // Health
   const habitsCompleted = Object.values(today.habits).filter(Boolean).length;
   const habitsTotal = DEFAULT_HABITS.length;
-  const habitPercent = habitsTotal > 0 ? (habitsCompleted / habitsTotal) * 100 : 0;
   const waterPercent = Math.min((today.water / 2000) * 100, 100);
+
+  // Productivity score (tasks done ratio + habits ratio, averaged)
+  const totalTasks = todoCount + inProgressCount + doneCount;
+  const taskScore = totalTasks > 0 ? (doneCount / totalTasks) * 100 : 0;
+  const habitScore = habitsTotal > 0 ? (habitsCompleted / habitsTotal) * 100 : 0;
+  const productivityScore = Math.round((taskScore + habitScore) / 2);
 
   const greeting = displayName ? `${getGreeting()}, ${displayName.split(" ")[0]}` : getGreeting();
 
   return (
-    <div className="page-container space-y-6">
-      {/* Header */}
-      <div className="space-y-1">
-        <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-          <Calendar className="h-3 w-3" />
-          {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-        </p>
-        <h1 className="text-2xl md:text-3xl font-bold font-display tracking-tight text-foreground">
-          {greeting}
-        </h1>
+    <div className="page-container space-y-5">
+      {/* Header row */}
+      <div className="flex items-end justify-between gap-4">
+        <div className="space-y-0.5">
+          <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
+            <Calendar className="h-3 w-3" />
+            {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+          </p>
+          <h1 className="text-2xl md:text-3xl font-bold font-display tracking-tight text-foreground">
+            {greeting}
+          </h1>
+        </div>
+        <div className="hidden md:block">
+          <ProductivityRing percent={productivityScore} label="Today" />
+        </div>
       </div>
 
-      {/* Metric Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard
-          label="Active Tasks"
-          value={totalActive}
-          sub={`${doneCount} completed`}
-          icon={<CheckSquare className="h-4 w-4" />}
-          gradient="gradient-primary"
-          onClick={() => navigate("/tasks")}
-        />
-        <MetricCard
-          label="Balance"
-          value={`$${Math.abs(balance).toLocaleString("en-US", { maximumFractionDigits: 0 })}`}
-          sub={balance >= 0 ? "surplus" : "deficit"}
-          icon={balance >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-          gradient="gradient-warm"
-          valueClass={balance >= 0 ? "text-success" : "text-destructive"}
-          onClick={() => navigate("/finance")}
-        />
-        <MetricCard
-          label="Habits"
-          value={`${habitsCompleted}/${habitsTotal}`}
-          sub={`${Math.round(habitPercent)}% done`}
-          icon={<Flame className="h-4 w-4" />}
-          gradient="gradient-cool"
-          onClick={() => navigate("/health")}
-        />
-        <MetricCard
-          label="Water"
-          value={`${(today.water / 1000).toFixed(1)}L`}
-          sub="of 2L goal"
-          icon={<Heart className="h-4 w-4" />}
-          gradient="gradient-primary"
-          onClick={() => navigate("/health")}
-        />
-      </div>
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {/* Focus Tasks - Left */}
-        <Card className="card-elevated lg:col-span-3">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold font-display text-foreground">Focus</h2>
-              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-7 gap-1" onClick={() => navigate("/tasks")}>
+      {/* ── Row 1: Priorities + Pomodoro ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Top Priorities */}
+        <Card className="card-elevated lg:col-span-2">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-destructive" />
+                <h2 className="text-sm font-semibold font-display text-foreground">Top Priorities</h2>
+              </div>
+              <Button variant="ghost" size="sm" className="text-[11px] text-muted-foreground h-6 gap-1" onClick={() => navigate("/tasks")}>
                 All tasks <ArrowRight className="h-3 w-3" />
               </Button>
             </div>
 
             {overdueTasks.length > 0 && (
-              <div className="mb-3 px-3 py-2 rounded-lg bg-destructive/8 border border-destructive/15">
-                <p className="text-xs font-medium text-destructive">
-                  {overdueTasks.length} overdue task{overdueTasks.length > 1 ? "s" : ""}
+              <div className="mb-2 px-2.5 py-1.5 rounded-md bg-destructive/8 border border-destructive/15">
+                <p className="text-[11px] font-medium text-destructive">
+                  ⚠ {overdueTasks.length} overdue task{overdueTasks.length > 1 ? "s" : ""}
                 </p>
               </div>
             )}
 
-            {topTasks.length > 0 ? (
-              <div className="space-y-1.5">
-                {topTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/40 transition-colors group"
-                  >
-                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      task.priority === "high" ? "bg-destructive" :
-                      task.priority === "medium" ? "bg-warning" : "bg-muted-foreground/30"
-                    }`} />
+            {topPriorities.length > 0 ? (
+              <div className="space-y-1">
+                {topPriorities.map((task) => (
+                  <div key={task.id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/40 transition-colors">
+                    <div className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0" />
                     <span className="text-sm text-foreground flex-1 truncate">{task.title}</span>
-                    <div className="flex items-center gap-2">
-                      {task.due_date && (
-                        <span className={`text-[10px] font-medium ${
-                          task.due_date < todayStr ? "text-destructive" :
-                          task.due_date === todayStr ? "text-warning" : "text-muted-foreground"
-                        }`}>
-                          {task.due_date === todayStr ? "Today" :
-                           task.due_date < todayStr ? "Overdue" :
-                           new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </span>
-                      )}
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                        task.column_id === "inprogress"
-                          ? "bg-warning/10 text-warning"
-                          : "bg-muted text-muted-foreground"
-                      }`}>
-                        {task.column_id === "inprogress" ? "Active" : "To Do"}
-                      </span>
-                    </div>
+                    <span className={`text-[10px] font-medium ${
+                      !task.due_date ? "text-muted-foreground" :
+                      task.due_date < todayStr ? "text-destructive" :
+                      task.due_date === todayStr ? "text-warning" : "text-muted-foreground"
+                    }`}>
+                      {!task.due_date ? "" :
+                       task.due_date === todayStr ? "Today" :
+                       task.due_date < todayStr ? "Overdue" :
+                       new Date(task.due_date + "T00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                      task.column_id === "inprogress" ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"
+                    }`}>
+                      {task.column_id === "inprogress" ? "Active" : "To Do"}
+                    </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <p className="text-sm text-muted-foreground">No pending tasks</p>
-                <Button variant="ghost" size="sm" className="mt-2 text-xs" onClick={() => navigate("/tasks")}>
-                  Create one <ArrowRight className="h-3 w-3 ml-1" />
-                </Button>
-              </div>
+              <p className="text-sm text-muted-foreground text-center py-6">No high-priority tasks — nice! 🎉</p>
             )}
           </CardContent>
         </Card>
 
-        {/* Right Column */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Finance Snapshot */}
-          <Card className="card-elevated">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold font-display text-foreground">This Month</h2>
-                <Button variant="ghost" size="sm" className="text-xs text-muted-foreground h-7 gap-1" onClick={() => navigate("/finance")}>
-                  Details <ArrowRight className="h-3 w-3" />
-                </Button>
+        {/* Compact Pomodoro */}
+        <Card className="card-elevated">
+          <CardContent className="p-4">
+            <h2 className="text-sm font-semibold font-display text-foreground mb-3 flex items-center gap-2">
+              <Flame className="h-4 w-4 text-primary" /> Deep Work
+            </h2>
+            <CompactPomodoro />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── Row 2: Finance + Brain Dump + Productivity ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Personal Finance */}
+        <Card className="card-elevated">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold font-display text-foreground flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-success" /> Personal
+              </h2>
+              <Button variant="ghost" size="sm" className="text-[11px] text-muted-foreground h-6 gap-1" onClick={() => navigate("/finance")}>
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Income</span>
+                <span className="font-semibold text-success">${personalIncome.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <p className="text-[11px] text-muted-foreground">Income</p>
-                  <p className="text-lg font-bold font-display text-success">${monthIncome.toLocaleString("en-US", { maximumFractionDigits: 0 })}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[11px] text-muted-foreground">Expenses</p>
-                  <p className="text-lg font-bold font-display text-destructive">${monthExpense.toLocaleString("en-US", { maximumFractionDigits: 0 })}</p>
-                </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Expenses</span>
+                <span className="font-semibold text-destructive">${personalExpense.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+              </div>
+              <div className="pt-1.5 border-t border-border/40 flex justify-between text-xs">
+                <span className="font-medium text-foreground">Balance</span>
+                <span className={`font-bold ${personalBalance >= 0 ? "text-success" : "text-destructive"}`}>
+                  {personalBalance >= 0 ? "+" : ""}${Math.abs(personalBalance).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Freelance Finance */}
+        <Card className="card-elevated">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold font-display text-foreground flex items-center gap-2">
+                <Briefcase className="h-4 w-4 text-primary" /> Freelance
+              </h2>
+              <Button variant="ghost" size="sm" className="text-[11px] text-muted-foreground h-6 gap-1" onClick={() => navigate("/freelance")}>
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Earned</span>
+                <span className="font-semibold text-success">${freelanceIncome.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Expenses</span>
+                <span className="font-semibold text-destructive">${freelanceExpenses.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+              </div>
+              <div className="pt-1.5 border-t border-border/40 flex justify-between text-xs">
+                <span className="font-medium text-foreground">Net Profit</span>
+                <span className={`font-bold ${freelanceNet >= 0 ? "text-success" : "text-destructive"}`}>
+                  {freelanceNet >= 0 ? "+" : ""}${Math.abs(freelanceNet).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Brain Dump */}
+        <Card className="card-elevated">
+          <CardContent className="p-4">
+            <h2 className="text-sm font-semibold font-display text-foreground mb-2">💡 Quick Capture</h2>
+            <QuickBrainDump />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── Row 3: Habits + Water + Productivity Score (mobile) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        {/* Habits */}
+        <Card className="card-elevated lg:col-span-3">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold font-display text-foreground">Today's Habits</h2>
+              <span className="text-xs font-bold text-primary">{habitsCompleted}/{habitsTotal}</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+              {DEFAULT_HABITS.map((h) => (
+                <button
+                  key={h}
+                  onClick={() => toggleHabit(h)}
+                  className={`flex items-center gap-2 px-2.5 py-2 rounded-md text-xs font-medium transition-all ${
+                    today.habits[h]
+                      ? "bg-primary/10 text-primary border border-primary/20"
+                      : "bg-muted/30 text-muted-foreground border border-transparent hover:bg-muted/50"
+                  }`}
+                >
+                  <div className={`w-3 h-3 rounded-sm shrink-0 flex items-center justify-center text-[8px] ${
+                    today.habits[h] ? "bg-primary text-primary-foreground" : "border border-border"
+                  }`}>
+                    {today.habits[h] && "✓"}
+                  </div>
+                  <span className="truncate">{h}</span>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Water + Productivity */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Water */}
+          <Card className="card-elevated">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-semibold font-display text-foreground flex items-center gap-2">
+                  <Droplets className="h-4 w-4 text-info" /> Water
+                </h2>
+                <span className="text-xs font-medium text-muted-foreground">{today.water}ml / 2000ml</span>
+              </div>
+              <Progress value={waterPercent} className="h-2 [&>div]:bg-info" />
+              <div className="flex gap-1 mt-2.5">
+                {Array.from({ length: 8 }).map((_, i) => {
+                  const filled = today.water >= (i + 1) * 250;
+                  return (
+                    <div
+                      key={i}
+                      className={`flex-1 h-5 rounded-sm transition-colors ${filled ? "bg-info/30" : "bg-muted/40"}`}
+                    />
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
 
-          {/* Habits Progress */}
+          {/* Productivity Score — mobile */}
+          <Card className="card-elevated md:hidden">
+            <CardContent className="p-4 flex items-center gap-4">
+              <ProductivityRing percent={productivityScore} size={72} strokeWidth={6} label="Today" />
+              <div>
+                <p className="text-sm font-semibold font-display text-foreground">Productivity</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{doneCount} tasks done · {habitsCompleted} habits</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Stats */}
           <Card className="card-elevated">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold font-display text-foreground">Today's Habits</h2>
-                <span className="text-xs font-bold text-primary">{Math.round(habitPercent)}%</span>
-              </div>
-              <Progress value={habitPercent} className="h-1.5 mb-3" />
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                {DEFAULT_HABITS.map((h) => (
-                  <div key={h} className="flex items-center gap-2 py-1">
-                    <div className={`w-2.5 h-2.5 rounded-sm ${today.habits[h] ? "bg-primary" : "border border-border"}`} />
-                    <span className={`text-xs truncate ${today.habits[h] ? "text-foreground" : "text-muted-foreground"}`}>{h}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3 pt-3 border-t border-border/40">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">Water: {today.water}ml / 2000ml</p>
-                  <Progress value={waterPercent} className="h-1 w-20 [&>div]:bg-info" />
+            <CardContent className="p-4">
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <p className="text-lg font-bold font-display text-foreground">{todoCount + inProgressCount}</p>
+                  <p className="text-[10px] text-muted-foreground">Active</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold font-display text-success">{doneCount}</p>
+                  <p className="text-[10px] text-muted-foreground">Done</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold font-display text-destructive">{overdueTasks.length}</p>
+                  <p className="text-[10px] text-muted-foreground">Overdue</p>
                 </div>
               </div>
             </CardContent>
@@ -227,31 +322,5 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
-  );
-}
-
-function MetricCard({
-  label, value, sub, icon, gradient, valueClass, onClick,
-}: {
-  label: string;
-  value: string | number;
-  sub: string;
-  icon: React.ReactNode;
-  gradient: string;
-  valueClass?: string;
-  onClick: () => void;
-}) {
-  return (
-    <Card className="card-elevated group cursor-pointer hover:shadow-md transition-all" onClick={onClick}>
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className={`w-9 h-9 rounded-lg ${gradient} flex items-center justify-center shrink-0 text-primary-foreground group-hover:scale-105 transition-transform`}>
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <p className={`text-xl font-bold font-display leading-none ${valueClass || "text-card-foreground"}`}>{value}</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{sub}</p>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
