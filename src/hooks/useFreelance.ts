@@ -98,8 +98,10 @@ export function useFreelance() {
     queryFn: async () => {
       const { data, error } = await supabase.from("projects").select("*").order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Project[];
-    },
+      return (data as unknown as Project[]).map(p => ({
+        ...p,
+        project_links: Array.isArray(p.project_links) ? p.project_links : [],
+      }));
   });
 
   const addProject = useMutation({
