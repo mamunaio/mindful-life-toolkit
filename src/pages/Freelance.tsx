@@ -634,25 +634,56 @@ function ProjectsTab({ projects, clients, projectNotes, payments, invoices, addP
 
       {/* Edit Dialog */}
       <Dialog open={!!editProject} onOpenChange={(o) => !o && setEditProject(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle className="font-display">Edit Project</DialogTitle></DialogHeader>
-          <div className="space-y-4 pt-2 max-h-[70vh] overflow-y-auto">
+          <div className="space-y-4 pt-2">
             <div className="space-y-1"><Label className="text-xs font-medium">Name *</Label><Input value={editName} onChange={(e) => setEditName(e.target.value)} /></div>
-            <div className="space-y-1">
-              <Label className="text-xs font-medium">Client</Label>
-              <Select value={editClientId} onValueChange={setEditClientId}>
-                <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No client</SelectItem>
-                  {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Client</Label>
+                <Select value={editClientId} onValueChange={setEditClientId}>
+                  <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No client</SelectItem>
+                    {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Priority</Label>
+                <Select value={editPriority} onValueChange={setEditPriority}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="high">🔴 High</SelectItem>
+                    <SelectItem value="medium">🟡 Medium</SelectItem>
+                    <SelectItem value="low">🟢 Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1"><Label className="text-xs font-medium">Budget</Label><Input type="number" value={editBudget} onChange={(e) => setEditBudget(e.target.value)} placeholder="0.00" /></div>
               <div className="space-y-1"><Label className="text-xs font-medium">Deadline</Label><Input type="date" value={editDeadline} onChange={(e) => setEditDeadline(e.target.value)} /></div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1"><Label className="text-xs font-medium">Estimated Hours</Label><Input type="number" value={editEstimatedHours} onChange={(e) => setEditEstimatedHours(e.target.value)} placeholder="0" /></div>
+              <div className="space-y-1"><Label className="text-xs font-medium">Time Spent (hrs)</Label><Input type="number" value={editTimeSpent} onChange={(e) => setEditTimeSpent(e.target.value)} placeholder="0" /></div>
+            </div>
             <div className="space-y-1"><Label className="text-xs font-medium">Description</Label><Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Project details..." rows={2} /></div>
+            {/* Important Links */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium flex items-center gap-1"><Link2 className="h-3 w-3" /> Important Links</Label>
+              {editLinks.map((l, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input value={l.label} onChange={(e) => { const nl = [...editLinks]; nl[i] = { ...nl[i], label: e.target.value }; setEditLinks(nl); }} placeholder="Label" className="w-28" />
+                  <Input value={l.url} onChange={(e) => { const nl = [...editLinks]; nl[i] = { ...nl[i], url: e.target.value }; setEditLinks(nl); }} placeholder="https://..." className="flex-1" />
+                  <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 hover:text-destructive" onClick={() => setEditLinks(editLinks.filter((_, idx) => idx !== i))}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+              <Button variant="outline" size="sm" onClick={() => setEditLinks([...editLinks, { label: "", url: "" }])} className="text-xs">+ Add Link</Button>
+            </div>
             <div className="space-y-2 p-3 rounded-lg bg-muted/20 border border-border/30">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-medium">Completion Progress</Label>
