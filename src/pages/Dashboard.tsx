@@ -1,4 +1,4 @@
-import { CheckSquare, Wallet, ArrowRight, TrendingUp, TrendingDown, Calendar, Flame, Droplets, Target, Briefcase, AlertTriangle } from "lucide-react";
+import { CheckSquare, Wallet, ArrowRight, Calendar, Flame, Droplets, Target, Briefcase, AlertTriangle, TrendingUp, TrendingDown, Sparkles, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -15,10 +15,14 @@ import TodaySchedule from "@/components/dashboard/TodaySchedule";
 
 function getGreeting() {
   const h = new Date().getHours();
-  if (h < 6) return "Good night";
+  if (h < 6) return "Still up";
   if (h < 12) return "Good morning";
   if (h < 17) return "Good afternoon";
   return "Good evening";
+}
+
+function fmt(n: number) {
+  return n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
 export default function Dashboard() {
@@ -27,7 +31,7 @@ export default function Dashboard() {
   const { tasks } = useTasks();
   const { transactions } = useTransactions();
   const { today, toggleHabit } = useHealth();
-  const { payments, withdrawals, expenses } = useFreelance();
+  const { payments, expenses, projects, clients } = useFreelance();
 
   const now = new Date();
   const todayStr = now.toISOString().split("T")[0];
@@ -39,14 +43,23 @@ export default function Dashboard() {
   const inProgressCount = tasks.filter((t) => t.column_id === "inprogress").length;
   const doneCount = tasks.filter((t) => t.column_id === "done").length;
   const overdueTasks = tasks.filter((t) => t.column_id !== "done" && t.due_date && t.due_date < todayStr);
+  const dueTodayTasks = tasks.filter((t) => t.column_id !== "done" && t.due_date === todayStr);
 
-  // Top priorities (high priority, non-done, max 5)
   const topPriorities = tasks
-    .filter((t) => t.column_id !== "done" && t.priority === "high")
-    .sort((a, b) => (a.due_date || "9999").localeCompare(b.due_date || "9999"))
-    .slice(0, 5);
+    .filter((t) => t.column_id !== "done")
+    .sort((a, b) => {
+      // overdue first, then due today, then high priority, then due-date asc
+      const aOver = a.due_date && a.due_date < todayStr ? 0 : 1;
+      const bOver = b.due_date && b.due_date < todayStr ? 0 : 1;
+      if (aOver !== bOver) return aOver - bOver;
+      const aHigh = a.priority === "high" ? 0 : 1;
+      const bHigh = b.priority === "high" ? 0 : 1;
+      if (aHigh !== bHigh) return aHigh - bHigh;
+      return (a.due_date || "9999").localeCompare(b.due_date || "9999");
+    })
+    .slice(0, 6);
 
-  // Personal finance
+  // Personal finance — month
   const monthTx = transactions.filter((t) => {
     const d = new Date(t.date);
     return d.getMonth() === month && d.getFullYear() === year;
@@ -55,15 +68,23 @@ export default function Dashboard() {
   const personalExpense = monthTx.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
   const personalBalance = personalIncome - personalExpense;
 
-  // Freelance finance
+  // Freelance finance — month
   const monthPayments = payments.filter((p) => {
     const d = new Date(p.date);
     return d.getMonth() === month && d.getFullYear() === year && p.status === "paid";
   });
   const freelanceIncome = monthPayments.reduce((s, p) => s + p.amount, 0);
-  const monthExpenses = expenses.filter((e) => { const d = new Date(e.date); return d.getMonth() === month && d.getFullYear() === year; });
+  const monthExpenses = expenses.filter((e) => {
+    const d = new Date(e.date);
+    return d.getMonth() === month && d.getFullYear() === year;
+  });
   const freelanceExpenses = monthExpenses.reduce((s, e) => s + e.amount, 0);
   const freelanceNet = freelanceIncome - freelanceExpenses;
+
+  // Outstanding A/R = unpaid payments
+  const outstandingAR = payments.filter((p) => p.status !== "paid").reduce((s, p) => s + p.amount, 0);
+  const activeProjects = projects.filter((p: any) => p.status === "active" || p.status === "in_progress").length;
+  const activeClients = clients.length;
 
   // Health
   const habitsCompleted = Object.values(today.habits).filter(Boolean).length;
@@ -76,266 +97,382 @@ export default function Dashboard() {
   const habitScore = habitsTotal > 0 ? (habitsCompleted / habitsTotal) * 100 : 0;
   const productivityScore = Math.round((taskScore + habitScore) / 2);
 
-  const greeting = displayName ? `${getGreeting()}, ${displayName.split(" ")[0]}` : getGreeting();
+  const firstName = displayName ? displayName.split(" ")[0] : "";
+  const greeting = firstName ? `${getGreeting()}, ${firstName}` : getGreeting();
 
   return (
-    <div className="page-container space-y-5">
-      {/* Header row */}
-      <div className="flex items-end justify-between gap-4">
-        <div className="space-y-0.5">
-          <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
-            <Calendar className="h-3 w-3" />
-            {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-          </p>
-          <h1 className="text-2xl md:text-3xl font-bold font-display tracking-tight text-foreground">
-            {greeting}
-          </h1>
-        </div>
-        {/* Productivity + Task Stats grouped */}
-        <div className="hidden md:flex items-center gap-5">
-          <div className="flex gap-4 text-center">
-            <div>
-              <p className="text-lg font-bold font-display text-foreground">{todoCount + inProgressCount}</p>
-              <p className="text-[10px] text-muted-foreground">Active</p>
+    <div className="page-container space-y-6">
+      {/* ─── HERO HEADER ─── */}
+      <div className="relative overflow-hidden rounded-3xl border border-border/50 bg-card/40 backdrop-blur-xl p-6 md:p-8">
+        <div className="absolute inset-0 -z-10 opacity-60 mesh-bg" />
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
+              <Calendar className="h-3.5 w-3.5" />
+              <span className="tabular-nums">
+                {now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+              </span>
+              <span className="kbd ml-1">⌘K to search</span>
             </div>
-            <div>
-              <p className="text-lg font-bold font-display text-success">{doneCount}</p>
-              <p className="text-[10px] text-muted-foreground">Done</p>
-            </div>
-            <div>
-              <p className={`text-lg font-bold font-display ${overdueTasks.length > 0 ? "text-destructive" : "text-muted-foreground"}`}>{overdueTasks.length}</p>
-              <p className="text-[10px] text-muted-foreground">Overdue</p>
-            </div>
+            <h1 className="text-[28px] md:text-[34px] font-bold font-display tracking-tight text-foreground leading-tight">
+              {greeting}
+              <span className="text-gradient-primary"> ✦</span>
+            </h1>
+            <p className="text-sm text-muted-foreground max-w-xl">
+              {dueTodayTasks.length > 0
+                ? `You have ${dueTodayTasks.length} task${dueTodayTasks.length > 1 ? "s" : ""} due today and ${overdueTasks.length} overdue. Let's get to it.`
+                : overdueTasks.length > 0
+                ? `${overdueTasks.length} overdue task${overdueTasks.length > 1 ? "s need" : " needs"} your attention. Stay on top of it.`
+                : "Your queue is clear. A great day to ship something meaningful."}
+            </p>
           </div>
-          <div className="w-px h-10 bg-border/50" />
-          <ProductivityRing percent={productivityScore} label="Today" />
+
+          {/* KPI rail */}
+          <div className="flex items-center gap-4 md:gap-6">
+            <div className="flex gap-3 md:gap-5">
+              <KpiPill label="Active" value={todoCount + inProgressCount} tone="default" />
+              <KpiPill label="Done" value={doneCount} tone="success" />
+              <KpiPill label="Overdue" value={overdueTasks.length} tone={overdueTasks.length > 0 ? "destructive" : "muted"} />
+            </div>
+            <div className="hidden sm:block w-px h-12 bg-border/60" />
+            <ProductivityRing percent={productivityScore} label="Today" />
+          </div>
         </div>
       </div>
 
-      {/* Mobile: Productivity + Stats */}
-      <div className="md:hidden">
-        <Card className="card-elevated">
-          <CardContent className="p-4 flex items-center gap-4">
-            <ProductivityRing percent={productivityScore} size={72} strokeWidth={6} label="Today" />
-            <div className="flex gap-5 flex-1">
-              <div className="text-center">
-                <p className="text-lg font-bold font-display text-foreground">{todoCount + inProgressCount}</p>
-                <p className="text-[10px] text-muted-foreground">Active</p>
+      {/* ─── ROW 1: Today's Focus + Schedule ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Today's Focus */}
+        <Card className="lg:col-span-2 hover-lift">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Target className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-[14px] font-semibold font-display text-foreground leading-none">Today's Focus</h2>
+                  <p className="text-[10.5px] text-muted-foreground mt-1">Smart-prioritized — overdue, due today, then high priority</p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-lg font-bold font-display text-success">{doneCount}</p>
-                <p className="text-[10px] text-muted-foreground">Done</p>
-              </div>
-              <div className="text-center">
-                <p className={`text-lg font-bold font-display ${overdueTasks.length > 0 ? "text-destructive" : "text-muted-foreground"}`}>{overdueTasks.length}</p>
-                <p className="text-[10px] text-muted-foreground">Overdue</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ── Row 1: Priorities + Pomodoro ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Top Priorities */}
-        <Card className="card-elevated lg:col-span-2">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-destructive" />
-                <h2 className="text-sm font-semibold font-display text-foreground">Top Priorities</h2>
-              </div>
-              <Button variant="ghost" size="sm" className="text-[11px] text-muted-foreground h-6 gap-1" onClick={() => navigate("/tasks")}>
-                All tasks <ArrowRight className="h-3 w-3" />
+              <Button variant="ghost" size="sm" className="text-[11px] text-muted-foreground h-7 gap-1" onClick={() => navigate("/tasks")}>
+                View board <ArrowRight className="h-3 w-3" />
               </Button>
             </div>
 
             {overdueTasks.length > 0 && (
-              <div className="mb-2 px-2.5 py-1.5 rounded-md bg-destructive/8 border border-destructive/15">
-                <p className="text-[11px] font-medium text-destructive flex items-center gap-1.5">
-                  <AlertTriangle className="h-3 w-3" /> {overdueTasks.length} overdue task{overdueTasks.length > 1 ? "s" : ""}
+              <div className="mb-3 px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center justify-between">
+                <p className="text-[12px] font-medium text-destructive flex items-center gap-2">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {overdueTasks.length} overdue task{overdueTasks.length > 1 ? "s" : ""}
                 </p>
+                <Button size="sm" variant="ghost" className="h-6 text-[11px] text-destructive hover:bg-destructive/15" onClick={() => navigate("/tasks")}>
+                  Review <ArrowRight className="h-3 w-3" />
+                </Button>
               </div>
             )}
 
             {topPriorities.length > 0 ? (
               <div className="space-y-1">
-                {topPriorities.map((task) => (
-                  <div key={task.id} className="flex items-center gap-2.5 px-2.5 py-2 rounded-md hover:bg-muted/40 transition-colors">
-                    <div className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0" />
-                    <span className="text-sm text-foreground flex-1 truncate">{task.title}</span>
-                    <span className={`text-[10px] font-medium ${
-                      !task.due_date ? "text-muted-foreground" :
-                      task.due_date < todayStr ? "text-destructive" :
-                      task.due_date === todayStr ? "text-warning" : "text-muted-foreground"
-                    }`}>
-                      {!task.due_date ? "" :
-                       task.due_date === todayStr ? "Today" :
-                       task.due_date < todayStr ? "Overdue" :
-                       new Date(task.due_date + "T00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                      task.column_id === "inprogress" ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"
-                    }`}>
-                      {task.column_id === "inprogress" ? "Active" : "To Do"}
-                    </span>
-                  </div>
-                ))}
+                {topPriorities.map((task) => {
+                  const isOverdue = task.due_date && task.due_date < todayStr;
+                  const isToday = task.due_date === todayStr;
+                  return (
+                    <button
+                      key={task.id}
+                      onClick={() => navigate("/tasks")}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors text-left group"
+                    >
+                      <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        isOverdue ? "bg-destructive" :
+                        task.priority === "high" ? "bg-warning" :
+                        "bg-muted-foreground/40"
+                      }`} />
+                      <span className="text-[13px] text-foreground flex-1 truncate group-hover:text-foreground">{task.title}</span>
+                      {task.due_date && (
+                        <span className={`text-[10.5px] font-medium tabular-nums ${
+                          isOverdue ? "text-destructive" :
+                          isToday ? "text-warning" :
+                          "text-muted-foreground"
+                        }`}>
+                          {isOverdue ? "Overdue" : isToday ? "Today" : new Date(task.due_date + "T00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </span>
+                      )}
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${
+                        task.column_id === "inprogress" ? "bg-warning/15 text-warning" : "bg-muted text-muted-foreground"
+                      }`}>
+                        {task.column_id === "inprogress" ? "In Progress" : "To Do"}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground text-center py-6">No high-priority tasks — nice! 🎉</p>
+              <div className="text-center py-10">
+                <div className="inline-flex w-12 h-12 rounded-xl bg-success/10 items-center justify-center mb-3">
+                  <CheckSquare className="h-5 w-5 text-success" />
+                </div>
+                <p className="text-sm text-foreground font-medium">All clear.</p>
+                <p className="text-[12px] text-muted-foreground mt-1">No urgent tasks — perfect time for deep work.</p>
+              </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Compact Pomodoro */}
-        <Card className="card-elevated">
-          <CardContent className="p-4">
-            <h2 className="text-sm font-semibold font-display text-foreground mb-3 flex items-center gap-2">
-              <Flame className="h-4 w-4 text-primary" /> Deep Work
-            </h2>
-            <CompactPomodoro />
+        {/* Schedule */}
+        <Card className="hover-lift">
+          <CardContent className="p-5">
+            <TodaySchedule />
           </CardContent>
         </Card>
       </div>
 
-      {/* ── Row 2: Schedule + Finance + Brain Dump ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Today's Schedule */}
-        <Card className="card-elevated">
-          <CardContent className="p-4">
-            <TodaySchedule />
+      {/* ─── ROW 2: Money in Motion ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Freelance Snapshot — wider */}
+        <Card className="lg:col-span-2 relative overflow-hidden hover-lift">
+          <div className="absolute inset-0 -z-10 opacity-50 [background:radial-gradient(at_100%_0%,hsl(var(--primary)/0.08)_0%,transparent_60%)]" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center shadow-glow">
+                  <Briefcase className="h-3.5 w-3.5 text-primary-foreground" />
+                </div>
+                <div>
+                  <h2 className="text-[14px] font-semibold font-display text-foreground leading-none">Freelance · {now.toLocaleDateString("en-US", { month: "long" })}</h2>
+                  <p className="text-[10.5px] text-muted-foreground mt-1">{activeProjects} active project{activeProjects !== 1 ? "s" : ""} · {activeClients} client{activeClients !== 1 ? "s" : ""}</p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" className="text-[11px] text-muted-foreground h-7 gap-1" onClick={() => navigate("/freelance")}>
+                Open <ArrowRight className="h-3 w-3" />
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <MoneyTile
+                label="Earned"
+                amount={freelanceIncome}
+                tone="success"
+                icon={<TrendingUp className="h-3.5 w-3.5" />}
+              />
+              <MoneyTile
+                label="Expenses"
+                amount={freelanceExpenses}
+                tone="destructive"
+                icon={<TrendingDown className="h-3.5 w-3.5" />}
+              />
+              <MoneyTile
+                label={freelanceNet >= 0 ? "Net Profit" : "Deficit"}
+                amount={Math.abs(freelanceNet)}
+                tone={freelanceNet >= 0 ? "primary" : "destructive"}
+                icon={<Sparkles className="h-3.5 w-3.5" />}
+                prefix={freelanceNet >= 0 ? "+" : "-"}
+              />
+            </div>
+
+            {outstandingAR > 0 && (
+              <div className="mt-4 px-3 py-2.5 rounded-lg bg-warning/10 border border-warning/20 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-3.5 w-3.5 text-warning" />
+                  <span className="text-[12px] text-foreground">
+                    <span className="font-semibold tabular-nums">${fmt(outstandingAR)}</span> in outstanding receivables
+                  </span>
+                </div>
+                <Button size="sm" variant="ghost" className="h-6 text-[11px] text-warning hover:bg-warning/15" onClick={() => navigate("/freelance")}>
+                  Chase <ArrowRight className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Personal Finance */}
-        <Card className="card-elevated">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold font-display text-foreground flex items-center gap-2">
-                <Wallet className="h-4 w-4 text-success" /> Personal
-              </h2>
-              <Button variant="ghost" size="sm" className="text-[11px] text-muted-foreground h-6 gap-1" onClick={() => navigate("/finance")}>
-                <ArrowRight className="h-3 w-3" />
-              </Button>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Income</span>
-                <span className="font-semibold text-success">${personalIncome.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Expenses</span>
-                <span className="font-semibold text-destructive">${personalExpense.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
-              </div>
-              <div className="pt-1.5 border-t border-border/40 flex justify-between text-xs">
-                <span className="font-medium text-foreground">Balance</span>
-                <span className={`font-bold ${personalBalance >= 0 ? "text-success" : "text-destructive"}`}>
-                  {personalBalance >= 0 ? "+" : "-"}${Math.abs(personalBalance).toLocaleString("en-US", { maximumFractionDigits: 0 })}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Freelance Finance — FIXED negative display */}
-        <Card className="card-elevated">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold font-display text-foreground flex items-center gap-2">
-                <Briefcase className="h-4 w-4 text-primary" /> Freelance
-              </h2>
-              <Button variant="ghost" size="sm" className="text-[11px] text-muted-foreground h-6 gap-1" onClick={() => navigate("/freelance")}>
-                <ArrowRight className="h-3 w-3" />
-              </Button>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Earned</span>
-                <span className="font-semibold text-success">${freelanceIncome.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Expenses</span>
-                <span className="font-semibold text-destructive">${freelanceExpenses.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
-              </div>
-              <div className="pt-1.5 border-t border-border/40 flex justify-between items-center text-xs">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-medium text-foreground">{freelanceNet >= 0 ? "Net Profit" : "Deficit"}</span>
-                  {freelanceNet < 0 && <AlertTriangle className="h-3 w-3 text-destructive" />}
+        <Card className="hover-lift">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-success/10 flex items-center justify-center">
+                  <Wallet className="h-3.5 w-3.5 text-success" />
                 </div>
-                <span className={`font-bold ${freelanceNet >= 0 ? "text-success" : "text-destructive"}`}>
-                  {freelanceNet >= 0 ? "+" : "-"}${Math.abs(freelanceNet).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                <h2 className="text-[14px] font-semibold font-display text-foreground leading-none">Personal</h2>
+              </div>
+              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => navigate("/finance")}>
+                <ArrowRight className="h-3 w-3 text-muted-foreground" />
+              </Button>
+            </div>
+            <div className="space-y-2.5">
+              <Row label="Income"   value={`$${fmt(personalIncome)}`}  tone="success" />
+              <Row label="Expenses" value={`$${fmt(personalExpense)}`} tone="destructive" />
+              <div className="pt-2.5 mt-1 border-t border-border/50 flex items-center justify-between">
+                <span className="text-[12px] font-medium text-foreground">Balance</span>
+                <span className={`text-[18px] font-bold font-display tabular-nums ${personalBalance >= 0 ? "text-success" : "text-destructive"}`}>
+                  {personalBalance >= 0 ? "+" : "-"}${fmt(Math.abs(personalBalance))}
                 </span>
               </div>
             </div>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Quick Brain Dump */}
-        <Card className="card-elevated">
-          <CardContent className="p-4">
-            <h2 className="text-sm font-semibold font-display text-foreground mb-2">💡 Quick Capture</h2>
+      {/* ─── ROW 3: Deep Work + Capture ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <Card className="hover-lift">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-7 h-7 rounded-lg bg-warning/10 flex items-center justify-center">
+                <Flame className="h-3.5 w-3.5 text-warning" />
+              </div>
+              <div>
+                <h2 className="text-[14px] font-semibold font-display text-foreground leading-none">Deep Work</h2>
+                <p className="text-[10.5px] text-muted-foreground mt-1">Focused pomodoro sessions</p>
+              </div>
+            </div>
+            <CompactPomodoro />
+          </CardContent>
+        </Card>
+
+        <Card className="hover-lift">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center">
+                <Sparkles className="h-3.5 w-3.5 text-accent" />
+              </div>
+              <div>
+                <h2 className="text-[14px] font-semibold font-display text-foreground leading-none">Quick Capture</h2>
+                <p className="text-[10.5px] text-muted-foreground mt-1">Brain dump · ⌘+Enter to save</p>
+              </div>
+            </div>
             <QuickBrainDump />
           </CardContent>
         </Card>
       </div>
 
-      {/* ── Row 3: Habits + Water ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {/* Habits */}
-        <Card className="card-elevated lg:col-span-3">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold font-display text-foreground">Today's Habits</h2>
-              <span className="text-xs font-bold text-primary">{habitsCompleted}/{habitsTotal}</span>
+      {/* ─── ROW 4: Wellness Strip ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+        <Card className="lg:col-span-3 hover-lift">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-success/10 flex items-center justify-center">
+                  <CheckSquare className="h-3.5 w-3.5 text-success" />
+                </div>
+                <h2 className="text-[14px] font-semibold font-display text-foreground leading-none">Today's Habits</h2>
+              </div>
+              <span className="text-[12px] font-bold tabular-nums text-foreground">
+                <span className="text-primary">{habitsCompleted}</span>
+                <span className="text-muted-foreground/60">/{habitsTotal}</span>
+              </span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-              {DEFAULT_HABITS.map((h) => (
-                <button
-                  key={h}
-                  onClick={() => toggleHabit(h)}
-                  className={`flex items-center gap-2 px-2.5 py-2 rounded-md text-xs font-medium transition-all ${
-                    today.habits[h]
-                      ? "bg-primary/10 text-primary border border-primary/20"
-                      : "bg-muted/30 text-muted-foreground border border-transparent hover:bg-muted/50"
-                  }`}
-                >
-                  <div className={`w-3 h-3 rounded-sm shrink-0 flex items-center justify-center text-[8px] ${
-                    today.habits[h] ? "bg-primary text-primary-foreground" : "border border-border"
-                  }`}>
-                    {today.habits[h] && "✓"}
-                  </div>
-                  <span className="truncate">{h}</span>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Water */}
-        <Card className="card-elevated lg:col-span-2">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-semibold font-display text-foreground flex items-center gap-2">
-                <Droplets className="h-4 w-4 text-info" /> Water
-              </h2>
-              <span className="text-xs font-medium text-muted-foreground">{today.water}ml / 2000ml</span>
-            </div>
-            <Progress value={waterPercent} className="h-2 [&>div]:bg-info" />
-            <div className="flex gap-1 mt-2.5">
-              {Array.from({ length: 8 }).map((_, i) => {
-                const filled = today.water >= (i + 1) * 250;
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {DEFAULT_HABITS.map((h) => {
+                const checked = today.habits[h];
                 return (
-                  <div
-                    key={i}
-                    className={`flex-1 h-5 rounded-sm transition-colors ${filled ? "bg-info/30" : "bg-muted/40"}`}
-                  />
+                  <button
+                    key={h}
+                    onClick={() => toggleHabit(h)}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-[12px] font-medium transition-all ${
+                      checked
+                        ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+                        : "bg-muted/30 text-muted-foreground border border-transparent hover:bg-muted/60 hover:text-foreground"
+                    }`}
+                  >
+                    <div className={`w-3.5 h-3.5 rounded-md shrink-0 flex items-center justify-center text-[9px] transition-all ${
+                      checked ? "bg-primary text-primary-foreground" : "border border-border"
+                    }`}>
+                      {checked && "✓"}
+                    </div>
+                    <span className="truncate">{h}</span>
+                  </button>
                 );
               })}
             </div>
           </CardContent>
         </Card>
+
+        <Card className="lg:col-span-2 hover-lift">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-info/10 flex items-center justify-center">
+                  <Droplets className="h-3.5 w-3.5 text-info" />
+                </div>
+                <h2 className="text-[14px] font-semibold font-display text-foreground leading-none">Hydration</h2>
+              </div>
+              <span className="text-[11px] font-medium text-muted-foreground tabular-nums">
+                {today.water}ml / 2000ml
+              </span>
+            </div>
+            <Progress value={waterPercent} className="h-2 [&>div]:bg-info" />
+            <div className="flex gap-1 mt-3">
+              {Array.from({ length: 8 }).map((_, i) => {
+                const filled = today.water >= (i + 1) * 250;
+                return (
+                  <div
+                    key={i}
+                    className={`flex-1 h-6 rounded-md transition-colors ${filled ? "bg-info/40" : "bg-muted/40"}`}
+                  />
+                );
+              })}
+            </div>
+            <p className="text-[10.5px] text-muted-foreground mt-2.5">{Math.round(waterPercent)}% of daily goal</p>
+          </CardContent>
+        </Card>
       </div>
+    </div>
+  );
+}
+
+/* ── Local subcomponents ── */
+
+function KpiPill({ label, value, tone }: { label: string; value: number; tone: "default" | "success" | "destructive" | "muted" }) {
+  const toneCls =
+    tone === "success" ? "text-success" :
+    tone === "destructive" ? "text-destructive" :
+    tone === "muted" ? "text-muted-foreground" :
+    "text-foreground";
+  return (
+    <div className="text-center min-w-[44px]">
+      <p className={`text-[20px] font-bold font-display leading-none tabular-nums ${toneCls}`}>{value}</p>
+      <p className="text-[10px] text-muted-foreground mt-1.5 uppercase tracking-wider">{label}</p>
+    </div>
+  );
+}
+
+function MoneyTile({
+  label,
+  amount,
+  tone,
+  icon,
+  prefix = "",
+}: {
+  label: string;
+  amount: number;
+  tone: "success" | "destructive" | "primary";
+  icon: React.ReactNode;
+  prefix?: string;
+}) {
+  const toneCls =
+    tone === "success" ? "text-success bg-success/8 border-success/20" :
+    tone === "destructive" ? "text-destructive bg-destructive/8 border-destructive/20" :
+    "text-primary bg-primary/8 border-primary/20";
+  return (
+    <div className={`rounded-xl border p-3 ${toneCls}`}>
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold opacity-80">
+        {icon}
+        <span>{label}</span>
+      </div>
+      <p className="text-[20px] font-bold font-display tabular-nums mt-2 leading-none">
+        {prefix}${fmt(amount)}
+      </p>
+    </div>
+  );
+}
+
+function Row({ label, value, tone }: { label: string; value: string; tone: "success" | "destructive" }) {
+  return (
+    <div className="flex justify-between items-center text-[12.5px]">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={`font-semibold tabular-nums ${tone === "success" ? "text-success" : "text-destructive"}`}>{value}</span>
     </div>
   );
 }
