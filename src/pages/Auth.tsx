@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Sparkles } from "lucide-react";
 
 export default function Auth() {
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
@@ -64,13 +64,14 @@ export default function Auth() {
         </div>
         <div className="relative z-10 px-12 max-w-md">
           <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-xl flex items-center justify-center mb-8 border border-white/20">
-            <span className="text-white font-bold text-2xl font-display">L</span>
+            <Sparkles className="h-6 w-6 text-white" strokeWidth={2.25} />
           </div>
-          <h2 className="text-3xl font-bold text-white font-display tracking-tight leading-tight">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-white/60 font-semibold mb-3">LifeHub · Pro</p>
+          <h2 className="text-[34px] font-bold text-white font-display tracking-tight leading-[1.05]">
             Your life,<br />organized & secured.
           </h2>
-          <p className="text-white/70 mt-4 text-sm leading-relaxed">
-            LifeHub brings together tasks, finances, health tracking, and notes into one secure, premium workspace.
+          <p className="text-white/75 mt-5 text-[15px] leading-relaxed">
+            Tasks, finances, freelance pipeline, health and notes — unified into one premium command center.
           </p>
           <div className="flex items-center gap-2 mt-8 text-white/50 text-xs">
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -90,8 +91,8 @@ export default function Auth() {
         >
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
-            <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shadow-glow mx-auto">
-              <span className="text-primary-foreground font-bold text-xl font-display">L</span>
+            <div className="w-12 h-12 rounded-2xl gradient-primary flex items-center justify-center shadow-glow mx-auto">
+              <Sparkles className="h-5 w-5 text-primary-foreground" strokeWidth={2.25} />
             </div>
           </div>
 
